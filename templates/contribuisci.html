@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% from '_form.html' import render_fields with context %}
+{% block title %}Contribuisci alla proposta{% endblock %}
+{% block body_class %}page-form{% endblock %}
+{% block content %}
+<main class="form-wrap">
+  <div class="form-intro">
+    <h1>Contribuisci alla proposta di legge</h1>
+    <p>Hai partecipato o organizzato una tappa della Carovana? Raccontaci cosa è emerso: critiche, modifiche, integrazioni e esperienze dai territori alla proposta di legge dal basso del Social Forum dell'Abitare.</p>
+  </div>
+  {% if sent %}
+  <div class="done">
+    <h2>Grazie per il tuo contributo!</h2>
+    <p>Lo leggeremo con attenzione. Una volta approvato comparirà nella scheda dell'iniziativa sulla mappa.</p>
+    <p><a class="btn" href="{{ url_for('home') }}">Torna alla mappa</a> <a class="btn btn-ghost" href="{{ url_for('contribuisci') }}">Invia un altro contributo</a></p>
+  </div>
+  {% else %}
+  <form method="post" class="form" novalidate>
+    {% if errors %}<p class="form-error" role="alert">Controlla i campi segnati in rosso.</p>{% endif %}
+    {{ render_fields(fields, values, errors, iniziative, preselect) }}
+    <button type="submit" class="btn btn-big">Invia</button>
+  </form>
+  {% endif %}
+</main>
+{% endblock %}

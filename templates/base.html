@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Carovana per i diritti dell'abitare{% endblock %} – SFA</title>
+  <meta name="description" content="La Carovana del Social Forum dell'Abitare: iniziative in tutta Italia per discutere la proposta di legge dal basso sull'abitare.">
+  <link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="topbar">
+    <a href="{{ url_for('home') }}" class="brand">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="">
+      <span>Carovana <em>per i diritti dell'abitare</em></span>
+    </a>
+    <nav>
+      <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>Mappa</a>
+      <a href="{{ url_for('proponi') }}" {% if request.endpoint == 'proponi' %}aria-current="page"{% endif %}>Proponi un'iniziativa</a>
+      <a href="{{ url_for('contribuisci') }}" {% if request.endpoint == 'contribuisci' %}aria-current="page"{% endif %}>Contribuisci alla proposta</a>
+    </nav>
+  </header>
+  {% block content %}{% endblock %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

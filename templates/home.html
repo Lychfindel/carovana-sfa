@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block body_class %}page-home{% endblock %}
+{% block content %}
+<main class="home">
+  <aside class="sidebar" id="sidebar" aria-live="polite">
+    <section id="view-list">
+      <div class="intro">
+        <h1>La Carovana per i diritti dell'abitare</h1>
+        <p>Iniziative, dibattiti e vertenze in tutta Italia per discutere, mettere alla prova e arricchire la <strong>proposta di legge dal basso</strong> del Social Forum dell'Abitare.</p>
+        <div class="intro-ctas">
+          <a class="btn btn-small" href="{{ url_for('proponi') }}">+ Proponi un'iniziativa</a>
+          <a class="btn btn-small btn-ghost" href="{{ url_for('contribuisci') }}">Invia un contributo</a>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="dot dot-next"></i> In programma</span>
+        <span><i class="dot dot-past"></i> Già svolta</span>
+      </div>
+      <div class="tabs" role="tablist">
+        <button role="tab" class="tab" data-filter="next" aria-selected="true">In programma <b id="n-next">0</b></button>
+        <button role="tab" class="tab" data-filter="past" aria-selected="false">Già svolte <b id="n-past">0</b></button>
+      </div>
+      <ul class="list" id="list"></ul>
+      <p class="empty" id="empty" hidden></p>
+    </section>
+    <section id="view-detail" hidden>
+      <button class="back" id="back">← Tutte le iniziative</button>
+      <article id="detail"></article>
+    </section>
+  </aside>
+  <div class="map" id="map" aria-label="Mappa delle iniziative"></div>
+</main>
+{% endblock %}
+{% block scripts %}
+<script>window.CONTRIBUISCI_URL = "{{ url_for('contribuisci') }}";</script>
+<script src="{{ url_for('static', filename='home.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Accesso riservato{% endblock %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block body_class %}page-form{% endblock %}
+{% block content %}
+<main class="form-wrap narrow">
+  <form method="post" class="form">
+    <h1>Area riservata</h1>
+    <div class="field{% if error %} has-error{% endif %}">
+      <label for="pw">Password</label>
+      <input type="password" id="pw" name="password" autofocus required autocomplete="current-password">
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    </div>
+    <button type="submit" class="btn btn-big">Entra</button>
+  </form>
+</main>
+{% endblock %}
