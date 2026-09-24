@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Volantino – 10 punti per il diritto all'abitare{% endblock %}
+{% block body_class %}page-doc{% endblock %}
+{% block content %}
+<main class="doc-wrap">
+  <header class="doc-hero">
+    <p class="eyebrow">Social Forum dell'Abitare · Volantino</p>
+    <h1>Un Programma nazionale per il diritto all'abitare</h1>
+    <p class="lead">rimettendo al centro la giustizia sociale e ambientale.</p>
+    <div class="doc-ctas">
+      <a class="btn" href="{{ url_for('static', filename='pdf/SFA-Volantino-2026.pdf') }}" download>↓ Scarica il volantino (PDF)</a>
+      <a class="btn btn-ghost" href="{{ url_for('principi') }}">Leggi principi e linee guida</a>
+    </div>
+  </header>
+
+  <ol class="points">
+    <li>
+      <h2>La casa deve essere un diritto garantito dallo Stato e tuttə devono poter accedere a un alloggio.</h2>
+      <p>Devono esserci standard minimi di abitazione garantiti su tutto il territorio nazionale. Non ci devono essere cittadini di serie A e di serie B.</p>
+    </li>
+    <li>
+      <h2>Più case popolari, meglio mantenute.</h2>
+      <p>Serve un piano nazionale, con fondi annuali stabili e certi, per aumentare gli alloggi di edilizia residenziale pubblica e per la manutenzione di quelli esistenti.</p>
+    </li>
+    <li>
+      <h2>Affitti sociali a prezzi sostenibili.</h2>
+      <p>Per chi non riesce ad accedere al mercato libero ma non ha i requisiti per un alloggio pubblico: affitti calmierati con contratti lunghi e stabili, senza rischio di trovarsi senza alloggio da un anno all'altro.</p>
+    </li>
+    <li>
+      <h2>Regolazione affitti.</h2>
+      <p>Occorre introdurre un tetto massimo al costo dell'affitto, bloccare gli aumenti e prevedere strumenti a disposizione di Comuni e Regioni per limitare gli affitti turistici brevi e tutelare la residenzialità a lungo termine.</p>
+    </li>
+    <li>
+      <h2>Transizione ecologica equa.</h2>
+      <p>Strumenti e risorse devono essere rivolti prioritariamente al contrasto della povertà energetica, a partire dai più vulnerabili, e alla prevenzione di nuovi fenomeni di esclusione.</p>
+    </li>
+    <li>
+      <h2>Stop alle speculazioni.</h2>
+      <p>Le collaborazioni pubblico private devono vedere al centro l'interesse pubblico, valorizzando il coinvolgimento del privato no-profit e limitando il profitto di altri operatori per evitare speculazioni.</p>
+    </li>
+    <li>
+      <h2>Integrazione delle politiche abitative per la rigenerazione urbana.</h2>
+      <p>Abitare non è solo avere un tetto. Ogni quartiere deve includere aree verdi e attrezzate e fruibili da tutta la cittadinanza, spazi collettivi per attività libere, trasporti, scuole e negozi di prossimità, servizi che rendono davvero vivibile un luogo.</p>
+    </li>
+    <li>
+      <h2>Mappatura e recupero degli immobili inutilizzati.</h2>
+      <p>Migliaia di immobili pubblici e privati sono vuoti da anni. Censirli e rimetterli in uso significa più case disponibili senza consumare nuovo suolo, garantendo sicurezza e utilità sociale alla comunità dei residenti.</p>
+    </li>
+    <li>
+      <h2>Riforma della fiscalità immobiliare</h2>
+      <p>con abolizione della cedolare secca sul libero mercato, tracciabilità dei canoni, tassazione basata sulla "cattura del plusvalore" generato dal bene pubblico, esenzione IMU per gli alloggi ERP con compensazione delle minori entrate per i Comuni a carico del bilancio statale.</p>
+    </li>
+    <li>
+      <h2>Rafforzamento delle strutture della Pubblica Amministrazione,</h2>
+      <p>a livello centrale, regionale e locale, coinvolte nella costruzione e gestione del Programma Nazionale, adottando come prassi ordinaria la co-programmazione e la co-progettazione e assicurando processi democratici di partecipazione di organizzazioni, associazioni ed esponenti della società civile.</p>
+    </li>
+  </ol>
+
+  <aside class="doc-cta-box">
+    <h2>Discutiamone nel tuo territorio</h2>
+    <p>La Carovana porta questi punti in giro per l'Italia: organizza una tappa o racconta cosa è emerso dalle vostre discussioni.</p>
+    <p><a class="btn btn-small" href="{{ url_for('proponi') }}">Proponi un'iniziativa</a> <a class="btn btn-small btn-ghost" href="{{ url_for('contribuisci') }}">Invia un contributo</a></p>
+  </aside>
+</main>
+{% endblock %}

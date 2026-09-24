@@ -87,9 +87,19 @@ FORM_CONTRIBUTO = [
      "help": "Un'email che possiamo usare per contattarti"},
     {"name": "parte", "label": "A quale parte della proposta di legge si riferisce?",
      "type": "select", "required": True, "public": True,
-     "options": ["Proposta nel suo complesso", "Principi e finalità", "Edilizia residenziale pubblica",
-                 "Affitti e canoni", "Sfratti e morosità incolpevole", "Affitti brevi e turistificazione",
-                 "Patrimonio sfitto e riuso", "Altro"]},
+     "help": "I 10 punti del volantino della proposta",
+     "options": ["Proposta nel suo complesso",
+                 "1. La casa come diritto garantito dallo Stato",
+                 "2. Più case popolari, meglio mantenute",
+                 "3. Affitti sociali a prezzi sostenibili",
+                 "4. Regolazione affitti",
+                 "5. Transizione ecologica equa",
+                 "6. Stop alle speculazioni",
+                 "7. Politiche abitative e rigenerazione urbana",
+                 "8. Mappatura e recupero degli immobili inutilizzati",
+                 "9. Riforma della fiscalità immobiliare",
+                 "10. Rafforzamento della Pubblica Amministrazione",
+                 "Altro"]},
     {"name": "tipo", "label": "Tipo di contributo", "type": "radio", "required": True, "public": True,
      "options": ["Modifica a una proposta esistente", "Nuova proposta / integrazione",
                  "Critica o osservazione", "Esperienza dal territorio"]},
@@ -243,6 +253,16 @@ def handle_form(table, template, **ctx):
 @app.route("/")
 def home():
     return render_template("home.html")
+
+
+@app.route("/principi")
+def principi():
+    return render_template("principi.html")
+
+
+@app.route("/volantino")
+def volantino():
+    return render_template("volantino.html")
 
 
 @app.route("/proponi", methods=["GET", "POST"])

@@ -5,6 +5,8 @@ Sito della Carovana del Social Forum dell'Abitare.
 | Pagina | Indirizzo |
 |---|---|
 | Mappa delle iniziative (home) | `/` |
+| Principi e linee guida (con download PDF) | `/principi` |
+| Volantino in 10 punti (con download PDF) | `/volantino` |
 | Proponi un'iniziativa | `/proponi` |
 | Contribuisci alla proposta | `/contribuisci` (anche `/contribuisci?iniziativa=<id>`) |
 | Gestione (nascosta, con password) | `/gestione` (configurabile) |
@@ -13,6 +15,8 @@ I dati sono salvati in `data/iniziative.csv` e `data/contributi.csv`. Ogni rispo
 colonna `approvata` (default `False`): sulla mappa compaiono solo le righe approvate.
 I contributi sono collegati alle iniziative tramite la colonna `iniziativa_id`
 (`generale` = contributo non legato a una tappa). Le email non vengono mai pubblicate.
+
+I PDF scaricabili sono in `static/pdf/`: per aggiornarli basta sostituire i file tenendo lo stesso nome.
 
 ## Avvio in locale
 

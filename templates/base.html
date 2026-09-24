@@ -20,8 +20,10 @@
     </a>
     <nav>
       <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>Mappa</a>
+      <a href="{{ url_for('principi') }}" {% if request.endpoint == 'principi' %}aria-current="page"{% endif %}>Principi e linee guida</a>
+      <a href="{{ url_for('volantino') }}" {% if request.endpoint == 'volantino' %}aria-current="page"{% endif %}>Volantino</a>
       <a href="{{ url_for('proponi') }}" {% if request.endpoint == 'proponi' %}aria-current="page"{% endif %}>Proponi un'iniziativa</a>
-      <a href="{{ url_for('contribuisci') }}" {% if request.endpoint == 'contribuisci' %}aria-current="page"{% endif %}>Contribuisci alla proposta</a>
+      <a href="{{ url_for('contribuisci') }}" {% if request.endpoint == 'contribuisci' %}aria-current="page"{% endif %}>Contribuisci</a>
     </nav>
   </header>
   {% block content %}{% endblock %}
