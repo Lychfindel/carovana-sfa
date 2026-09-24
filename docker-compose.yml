@@ -1,0 +1,21 @@
+services:
+  carovana:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: carovana:latest
+    container_name: carovana
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/data
+    ports:
+      # solo su localhost: il sito va esposto tramite il reverse proxy del server
+      - "127.0.0.1:${CAROVANA_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/iniziative', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

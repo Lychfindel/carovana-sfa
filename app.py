@@ -39,6 +39,7 @@ app.config.update(
     SECRET_KEY=_secret_key(),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE") == "1",
     MAX_CONTENT_LENGTH=1024 * 1024,
 )
 

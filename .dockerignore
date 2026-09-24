@@ -1,0 +1,10 @@
+.git
+.venv
+data
+__pycache__
+*.pyc
+.env
+.env.*
+README.md
+docker-compose.yml
+Dockerfile

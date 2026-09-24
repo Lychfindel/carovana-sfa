@@ -18,6 +18,36 @@ I contributi sono collegati alle iniziative tramite la colonna `iniziativa_id`
 
 I PDF scaricabili sono in `static/pdf/`: per aggiornarli basta sostituire i file tenendo lo stesso nome.
 
+## Con Docker (consigliato sul server)
+
+```bash
+cp .env.example .env        # poi modifica almeno ADMIN_PASSWORD e SECRET_KEY
+docker compose up -d --build
+```
+
+- Il sito ascolta su `127.0.0.1:8000` (porta modificabile con `CAROVANA_PORT` in `.env`):
+  va esposto tramite il reverse proxy del server (nginx, Caddy, Traefik…) con HTTPS.
+- I CSV restano sul server nella cartella `./data` (montata in `/data` nel container):
+  per il backup basta copiare questa cartella.
+- Il container gira come utente non-root con UID/GID 1000. Se sul server la cartella del
+  progetto appartiene a un altro utente, avvia con `UID=$(id -u) GID=$(id -g) docker compose up -d --build`.
+- Aggiornare dopo un `git pull`: `docker compose up -d --build`.
+- Log: `docker compose logs -f`.
+
+Esempio di blocco nginx (sul server, fuori dal container):
+
+```nginx
+server {
+    server_name carovana.example.org;
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
 ## Avvio in locale
 
 ```bash
@@ -34,9 +64,10 @@ ADMIN_PASSWORD='una-password-robusta' .venv/bin/python app.py
 | `ADMIN_PASSWORD` | `cambiami` | password della pagina di gestione — **da cambiare** |
 | `ADMIN_PATH` | `gestione` | indirizzo della pagina di gestione |
 | `SECRET_KEY` | generata in `data/.secret_key` | chiave per le sessioni |
-| `CAROVANA_DATA_DIR` | `./data` | cartella dei CSV |
+| `CAROVANA_DATA_DIR` | `./data` (`/data` in Docker) | cartella dei CSV |
+| `COOKIE_SECURE` | vuoto | `1` se il sito è in HTTPS |
 
-## In produzione
+## In produzione senza Docker
 
 ```bash
 ADMIN_PASSWORD='...' .venv/bin/gunicorn -w 1 --threads 4 -b 127.0.0.1:8000 app:app
