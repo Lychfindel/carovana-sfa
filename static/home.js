@@ -148,7 +148,7 @@
     renderList();
   }));
 
-  fetch('api/iniziative').then((r) => r.json()).then((data) => {
+  fetch(window.API_URL || 'api/iniziative').then((r) => r.json()).then((data) => {
     items = data.iniziative;
     items.forEach((i) => {
       const m = L.circleMarker([i.lat, i.lng], markerStyle(i, false)).addTo(map);

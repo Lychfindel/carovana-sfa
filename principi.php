@@ -1,14 +1,16 @@
-{% extends 'base.html' %}
-{% block title %}Principi e linee guida{% endblock %}
-{% block body_class %}page-doc{% endblock %}
-{% block content %}
+<?php
+require __DIR__ . '/inc/bootstrap.php';
+$title = 'Principi e linee guida';
+$body_class = 'page-doc';
+require __DIR__ . '/inc/header.php';
+?>
 <main class="doc-wrap doc-long">
   <header class="doc-hero">
     <p class="eyebrow">Social Forum dell'Abitare · Giugno 2026</p>
     <h1>Principi e Linee guida per una Legge nazionale sulla casa degna e accessibile</h1>
     <div class="doc-ctas">
-      <a class="btn" href="{{ url_for('static', filename='pdf/SFA-Principi-e-Linee-guida-2026.pdf') }}" download>↓ Scarica il documento (PDF)</a>
-      <a class="btn btn-ghost" href="{{ url_for('volantino') }}">Il volantino in 10 punti</a>
+      <a class="btn" href="static/pdf/SFA-Principi-e-Linee-guida-2026.pdf" download>↓ Scarica il documento (PDF)</a>
+      <a class="btn btn-ghost" href="volantino.php">Il volantino in 10 punti</a>
     </div>
   </header>
 
@@ -35,7 +37,7 @@
           </ol>
         </li>
       </ol>
-      <a class="toc-dl" href="{{ url_for('static', filename='pdf/SFA-Principi-e-Linee-guida-2026.pdf') }}" download>↓ Scarica il PDF</a>
+      <a class="toc-dl" href="static/pdf/SFA-Principi-e-Linee-guida-2026.pdf" download>↓ Scarica il PDF</a>
     </nav>
 
     <article class="prose">
@@ -104,9 +106,9 @@
       <aside class="doc-cta-box">
         <h2>Mettila alla prova nel tuo territorio</h2>
         <p>Discuti questi principi, aggiungi ciò che manca e restituiscici ciò che emerge.</p>
-        <p><a class="btn btn-small" href="{{ url_for('proponi') }}">Proponi un'iniziativa</a> <a class="btn btn-small btn-ghost" href="{{ url_for('contribuisci') }}">Invia un contributo</a></p>
+        <p><a class="btn btn-small" href="proponi.php">Proponi un'iniziativa</a> <a class="btn btn-small btn-ghost" href="contribuisci.php">Invia un contributo</a></p>
       </aside>
     </article>
   </div>
 </main>
-{% endblock %}
+<?php require __DIR__ . '/inc/footer.php'; ?>

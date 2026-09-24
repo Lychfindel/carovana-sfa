@@ -1,15 +1,17 @@
-{% extends 'base.html' %}
-{% block title %}Volantino – 10 punti per il diritto all'abitare{% endblock %}
-{% block body_class %}page-doc{% endblock %}
-{% block content %}
+<?php
+require __DIR__ . '/inc/bootstrap.php';
+$title = "Volantino – 10 punti per il diritto all'abitare";
+$body_class = 'page-doc';
+require __DIR__ . '/inc/header.php';
+?>
 <main class="doc-wrap">
   <header class="doc-hero">
     <p class="eyebrow">Social Forum dell'Abitare · Volantino</p>
     <h1>Un Programma nazionale per il diritto all'abitare</h1>
     <p class="lead">rimettendo al centro la giustizia sociale e ambientale.</p>
     <div class="doc-ctas">
-      <a class="btn" href="{{ url_for('static', filename='pdf/SFA-Volantino-2026.pdf') }}" download>↓ Scarica il volantino (PDF)</a>
-      <a class="btn btn-ghost" href="{{ url_for('principi') }}">Leggi principi e linee guida</a>
+      <a class="btn" href="static/pdf/SFA-Volantino-2026.pdf" download>↓ Scarica il volantino (PDF)</a>
+      <a class="btn btn-ghost" href="principi.php">Leggi principi e linee guida</a>
     </div>
   </header>
 
@@ -59,7 +61,7 @@
   <aside class="doc-cta-box">
     <h2>Discutiamone nel tuo territorio</h2>
     <p>La Carovana porta questi punti in giro per l'Italia: organizza una tappa o racconta cosa è emerso dalle vostre discussioni.</p>
-    <p><a class="btn btn-small" href="{{ url_for('proponi') }}">Proponi un'iniziativa</a> <a class="btn btn-small btn-ghost" href="{{ url_for('contribuisci') }}">Invia un contributo</a></p>
+    <p><a class="btn btn-small" href="proponi.php">Proponi un'iniziativa</a> <a class="btn btn-small btn-ghost" href="contribuisci.php">Invia un contributo</a></p>
   </aside>
 </main>
-{% endblock %}
+<?php require __DIR__ . '/inc/footer.php'; ?>

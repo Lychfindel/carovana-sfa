@@ -252,3 +252,4 @@ $RECYCLE.BIN/
 data/*.csv
 data/.secret_key
 data/*.tmp
+data/.lock

@@ -1,16 +1,19 @@
-{% extends 'base.html' %}
-{% block body_class %}page-home{% endblock %}
-{% block content %}
+<?php
+require __DIR__ . '/inc/bootstrap.php';
+$body_class = 'page-home';
+$scripts = ['home.js'];
+require __DIR__ . '/inc/header.php';
+?>
 <main class="home">
   <aside class="sidebar" id="sidebar" aria-live="polite">
     <section id="view-list">
       <div class="intro">
         <h1>La Carovana per i diritti dell'abitare</h1>
         <p>Iniziative, dibattiti e vertenze in tutta Italia per discutere, mettere alla prova e arricchire la <strong>proposta di legge dal basso</strong> del Social Forum dell'Abitare.</p>
-        <p class="intro-docs">Leggi la proposta: <a href="{{ url_for('volantino') }}">i 10 punti</a> · <a href="{{ url_for('principi') }}">principi e linee guida</a></p>
+        <p class="intro-docs">Leggi la proposta: <a href="volantino.php">i 10 punti</a> · <a href="principi.php">principi e linee guida</a></p>
         <div class="intro-ctas">
-          <a class="btn btn-small" href="{{ url_for('proponi') }}">+ Proponi un'iniziativa</a>
-          <a class="btn btn-small btn-ghost" href="{{ url_for('contribuisci') }}">Invia un contributo</a>
+          <a class="btn btn-small" href="proponi.php">+ Proponi un'iniziativa</a>
+          <a class="btn btn-small btn-ghost" href="contribuisci.php">Invia un contributo</a>
         </div>
       </div>
       <div class="legend">
@@ -31,8 +34,5 @@
   </aside>
   <div class="map" id="map" aria-label="Mappa delle iniziative"></div>
 </main>
-{% endblock %}
-{% block scripts %}
-<script>window.CONTRIBUISCI_URL = "{{ url_for('contribuisci') }}";</script>
-<script src="{{ url_for('static', filename='home.js') }}"></script>
-{% endblock %}
+<script>window.API_URL = "api.php"; window.CONTRIBUISCI_URL = "contribuisci.php";</script>
+<?php require __DIR__ . '/inc/footer.php'; ?>
