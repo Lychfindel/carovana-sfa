@@ -32,7 +32,14 @@
   <div class="map" id="map" aria-label="Mappa delle iniziative"></div>
 </main>
 {% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+{% endblock %}
 {% block scripts %}
-<script>window.CONTRIBUISCI_URL = "{{ url_for('contribuisci') }}";</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+  window.CONTRIBUISCI_URL = "{{ url_for('contribuisci') }}";
+  window.REGIONI_URL = "{{ url_for('static', filename='italia-regioni.geojson') }}";
+</script>
 <script src="{{ url_for('static', filename='home.js') }}"></script>
 {% endblock %}

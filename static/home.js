@@ -1,10 +1,77 @@
 (function () {
-  const ITALY = [[36.4, 6.6], [47.1, 18.6]];
-  const map = L.map('map', { zoomSnap: 0.5 }).fitBounds(ITALY);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  // Vista nazionale: regioni disegnate nei colori SFA. Zoomando su una città
+  // compaiono gradualmente le strade (tile) e le regioni sfumano.
+  const ITALY = L.latLngBounds([[35.4, 6.3], [47.2, 18.8]]);
+  const FADE = [7, 9.5]; // zoom in cui le tile passano da invisibili a piene
+  const map = L.map('map', {
+    zoomSnap: 0.25, zoomDelta: 0.5, maxZoom: 18,
+    maxBounds: ITALY.pad(0.15), maxBoundsViscosity: 1
+  });
+  const fitItaly = () => {
+    // zoom minimo intero: markercluster non gestisce bene un minZoom frazionario
+    const z = Math.floor(map.getBoundsZoom(ITALY, false, [10, 10]));
+    map.setMinZoom(z);
+    return z;
+  };
+  map.fitBounds(ITALY, { padding: [10, 10] });
+  fitItaly();
+  // il contenitore può cambiare dimensione dopo l'avvio (layout, font, rotazione del telefono):
+  // senza aggiornare Leaflet i pallini fuori dalla vista "vecchia" non verrebbero disegnati
+  let atItaly = true;
+  map.on('zoomend', () => { atItaly = map.getZoom() < map.getMinZoom() + 1; });
+  new ResizeObserver(() => {
+    map.invalidateSize({ pan: false });
+    const z = fitItaly();
+    if (atItaly) map.fitBounds(ITALY, { padding: [10, 10], animate: false });
+    else if (map.getZoom() < z) map.setZoom(z);
+  }).observe(map.getContainer());
+
+  map.createPane('regions').style.zIndex = 350; // sopra le tile, sotto i pallini
+  map.getPane('regions').style.pointerEvents = 'none';
+  const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, opacity: 0,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Confini <a href="https://github.com/openpolis/geojson-italy">ISTAT/openpolis</a>'
   }).addTo(map);
+  let regions = null;
+  fetch(window.REGIONI_URL).then((r) => r.json()).then((geo) => {
+    regions = L.geoJSON(geo, { pane: 'regions', interactive: false, style: regionStyle }).addTo(map);
+  });
+
+  function fade() {
+    const z = map.getZoom();
+    return Math.min(1, Math.max(0, (z - FADE[0]) / (FADE[1] - FADE[0])));
+  }
+  function regionStyle() {
+    const f = fade();
+    return { color: '#b8a9e0', weight: 1.2, opacity: 1 - f * 0.6, fillColor: '#fdf6df', fillOpacity: 1 - f };
+  }
+  map.on('zoom', () => {
+    const f = fade();
+    tiles.setOpacity(f);
+    map.getContainer().classList.toggle('show-tiles', f > 0);
+    if (regions) regions.setStyle(regionStyle);
+  });
+
+  // Pallini (divIcon) raggruppati quando sono vicini
+  const cluster = L.markerClusterGroup({
+    maxClusterRadius: 28, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
+    iconCreateFunction: (c) => {
+      const kids = c.getAllChildMarkers();
+      const next = kids.some((m) => !m.options.past);
+      return L.divIcon({
+        html: '<span>' + kids.length + '</span>',
+        className: 'pin-cluster' + (next ? '' : ' is-past'),
+        iconSize: [30, 30]
+      });
+    }
+  }).addTo(map);
+  const pinIcon = (i) => L.divIcon({ className: 'pin' + (isPast(i) ? ' is-past' : ''), html: '<i></i>', iconSize: [18, 18] });
+  function setActive(id, on) {
+    const m = markers[id];
+    const e = m && m.getElement();
+    if (e) e.classList.toggle('is-active', on);
+    if (m) m.setZIndexOffset(on ? 1000 : (m.options.past ? 0 : 500));
+  }
 
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => {
@@ -32,16 +99,6 @@
 
   let items = [], markers = {}, filter = 'next', selected = null;
 
-  function markerStyle(i, active) {
-    const past = isPast(i);
-    return {
-      radius: active ? 11 : 8,
-      color: '#fff', weight: active ? 3 : 2,
-      fillColor: past ? '#9a9a9a' : '#d7263d',
-      fillOpacity: past ? 0.85 : 0.95
-    };
-  }
-
   function renderList() {
     const list = $('list'); list.innerHTML = '';
     const shown = items.filter((i) => (filter === 'past') === isPast(i));
@@ -58,8 +115,8 @@
       txt.append(el('strong', null, i.titolo), el('span', 'meta', i.citta + ' · ' + i.chi));
       b.append(cal, txt);
       b.addEventListener('click', () => select(i.id, true));
-      b.addEventListener('mouseenter', () => markers[i.id] && markers[i.id].setStyle(markerStyle(i, true)));
-      b.addEventListener('mouseleave', () => markers[i.id] && selected !== i.id && markers[i.id].setStyle(markerStyle(i, false)));
+      b.addEventListener('mouseenter', () => setActive(i.id, true));
+      b.addEventListener('mouseleave', () => selected !== i.id && setActive(i.id, false));
       li.append(b); list.append(li);
     });
     const empty = $('empty');
@@ -120,22 +177,27 @@
   function select(id, fly) {
     const i = items.find((x) => x.id === id);
     if (!i) return;
-    if (selected && markers[selected]) {
-      const prev = items.find((x) => x.id === selected);
-      markers[selected].setStyle(markerStyle(prev, false));
-    }
+    if (selected) setActive(selected, false);
     selected = id;
-    markers[id].setStyle(markerStyle(i, true)).bringToFront();
     renderDetail(i);
     $('view-list').hidden = true; $('view-detail').hidden = false;
     $('sidebar').scrollTop = 0;
-    if (fly) map.flyTo([i.lat, i.lng], Math.max(map.getZoom(), 9), { duration: 0.6 });
+    const highlight = () => setActive(id, true);
+    if (fly === 'jump') { // link diretto all'iniziativa: niente animazione al caricamento
+      map.setView([i.lat, i.lng], 13, { animate: false });
+      cluster.zoomToShowLayer(markers[id], highlight);
+    } else if (fly) {
+      map.once('moveend', () => cluster.zoomToShowLayer(markers[id], highlight));
+      map.flyTo([i.lat, i.lng], Math.max(map.getZoom(), 11), { duration: 0.8 });
+    } else {
+      highlight();
+    }
     if (history.replaceState) history.replaceState(null, '', '#' + id);
     if (window.matchMedia('(max-width: 800px)').matches) $('sidebar').scrollIntoView({ behavior: 'smooth' });
   }
 
   function back() {
-    if (selected && markers[selected]) markers[selected].setStyle(markerStyle(items.find((x) => x.id === selected), false));
+    if (selected) setActive(selected, false);
     selected = null;
     $('view-list').hidden = false; $('view-detail').hidden = true;
     if (history.replaceState) history.replaceState(null, '', location.pathname);
@@ -151,20 +213,23 @@
   fetch('api/iniziative').then((r) => r.json()).then((data) => {
     items = data.iniziative;
     items.forEach((i) => {
-      const m = L.circleMarker([i.lat, i.lng], markerStyle(i, false)).addTo(map);
-      m.bindTooltip(i.citta + ' – ' + i.titolo, { direction: 'top', offset: [0, -8] });
+      const m = L.marker([i.lat, i.lng], {
+        icon: pinIcon(i), past: isPast(i), riseOnHover: true,
+        zIndexOffset: isPast(i) ? 0 : 500, // i pallini rossi sopra i grigi
+        alt: i.citta + ' – ' + i.titolo, keyboard: true
+      });
+      m.bindTooltip(i.citta + ' – ' + i.titolo, { direction: 'top', offset: [0, -10] });
       m.on('click', () => select(i.id, false));
       markers[i.id] = m;
     });
-    // i pallini rossi sopra i grigi
-    items.filter((i) => !isPast(i)).forEach((i) => markers[i.id].bringToFront());
+    cluster.addLayers(Object.values(markers));
     if (!items.some((i) => !isPast(i)) && items.length) {
       filter = 'past';
       document.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', x.dataset.filter === 'past'));
     }
     renderList();
     const hash = location.hash.slice(1);
-    if (hash && markers[hash]) select(hash, true);
+    if (hash && markers[hash]) select(hash, 'jump');
   }).catch(() => {
     $('empty').hidden = false;
     $('empty').textContent = 'Impossibile caricare le iniziative. Riprova più tardi.';

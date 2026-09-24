@@ -18,6 +18,11 @@ I contributi sono collegati alle iniziative tramite la colonna `iniziativa_id`
 
 I PDF scaricabili sono in `static/pdf/`: per aggiornarli basta sostituire i file tenendo lo stesso nome.
 
+La mappa della home mostra le regioni italiane da `static/italia-regioni.geojson`
+(confini ISTAT 2026 da [openpolis/geojson-italy](https://github.com/openpolis/geojson-italy),
+licenza CC-BY, semplificati a ~116 KB); zoomando su una città compaiono le tile di
+OpenStreetMap. I pallini vicini vengono raggruppati con Leaflet.markercluster.
+
 ## Con Docker (consigliato sul server)
 
 ```bash

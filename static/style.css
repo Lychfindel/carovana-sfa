@@ -62,7 +62,18 @@ a { color: var(--green-dark); }
 .page-home { overflow: hidden; }
 .home { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; height: calc(100vh - var(--topbar)); height: calc(100dvh - var(--topbar)); }
 .sidebar { overflow-y: auto; border-right: 1px solid var(--line); background: var(--white); padding: 1.25rem; }
-.map { height: 100%; background: #dfe6e9; }
+.map { height: 100%; background: #e6e0f5; } /* "mare" color lavanda alla scala nazionale */
+.map.show-tiles { background: #dfe6e9; }
+
+/* pallini delle iniziative */
+.pin i { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--red); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(26,21,37,.35); transition: transform .15s; }
+.pin.is-past i { background: var(--grey); }
+.pin:hover i, .pin.is-active i { transform: scale(1.35); }
+.pin.is-active i { box-shadow: 0 0 0 4px rgba(215,38,61,.25), 0 1px 4px rgba(26,21,37,.35); }
+.pin.is-past.is-active i { box-shadow: 0 0 0 4px rgba(120,120,120,.25), 0 1px 4px rgba(26,21,37,.35); }
+.pin-cluster { border-radius: 50%; background: var(--red); border: 3px solid #fff; box-shadow: 0 1px 5px rgba(26,21,37,.35); color: #fff; font-weight: 700; font-size: .85rem; display: flex; align-items: center; justify-content: center; }
+.pin-cluster.is-past { background: var(--grey); }
+.pin-cluster span { line-height: 1; }
 
 .intro h1 { font-size: 1.5rem; }
 .intro p { margin: 0 0 1rem; color: var(--muted); font-size: .95rem; }
