@@ -34,7 +34,8 @@
     schema: {{ schema | tojson }},
     csrf: {{ csrf | tojson }},
     api: {{ url_for('admin_api', table='__T__') | tojson }},
-    csv: {{ url_for('admin_csv', table='__T__') | tojson }}
+    csv: {{ url_for('admin_csv', table='__T__') | tojson }},
+    foto: {{ foto_base | tojson }}
   };
 </script>
 <script src="{{ url_for('static', filename='admin.js') }}"></script>

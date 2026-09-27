@@ -8,20 +8,29 @@ Sito della Carovana del Social Forum dell'Abitare.
 | Principi e linee guida (con download PDF) | `/principi` |
 | Volantino in 10 punti (con download PDF) | `/volantino` |
 | Proponi un'iniziativa | `/proponi` |
-| Contribuisci alla proposta | `/contribuisci` (anche `/contribuisci?iniziativa=<id>`) |
+| Contribuisci alla proposta (nascosta: nessun link sul sito, si invia per email agli organizzatori) | `/contribuisci` (anche `/contribuisci?iniziativa=<id>`) |
 | Gestione (nascosta, con password) | `/gestione` (configurabile) |
 
 I dati sono salvati in `data/iniziative.csv` e `data/contributi.csv`. Ogni risposta ha la
 colonna `approvata` (default `False`): sulla mappa compaiono solo le righe approvate.
-I contributi sono collegati alle iniziative tramite la colonna `iniziativa_id`
-(`generale` = contributo non legato a una tappa). Le email non vengono mai pubblicate.
+I contributi sono collegati alle iniziative tramite la colonna `iniziativa_id`. Le email non
+vengono mai pubblicate.
+
+Il form "contribuisci" non ha un captcha: come antispam l'email deve coincidere con quella
+usata per proporre l'iniziativa scelta. Le foto (fino a 6 per contributo, max 10 MB l'una)
+vengono ricodificate in JPEG (lato massimo 2000 px, più una miniatura da 480 px) togliendo i
+metadati EXIF, come la posizione GPS; sono salvate in `data/foto/<id contributo>/` e sono
+visibili al pubblico solo quando il contributo è approvato. Le foto tolte dalla pagina di
+gestione, o di un contributo eliminato, vengono cancellate dal disco al salvataggio.
 
 I PDF scaricabili sono in `static/pdf/`: per aggiornarli basta sostituire i file tenendo lo stesso nome.
 
-La mappa della home mostra le regioni italiane da `static/italia-regioni.geojson`
-(confini ISTAT 2026 da [openpolis/geojson-italy](https://github.com/openpolis/geojson-italy),
-licenza CC-BY, semplificati a ~116 KB); zoomando su una città compaiono le tile di
-OpenStreetMap. I pallini vicini vengono raggruppati con Leaflet.markercluster.
+La mappa della home è OpenStreetMap ritagliata sull'Italia: fuori dai confini la copre
+`static/italia-maschera.geojson`, e `static/italia-regioni.geojson` disegna i confini regionali
+(entrambi ricavati dai confini ISTAT 2026 di [openpolis/geojson-italy](https://github.com/openpolis/geojson-italy),
+licenza CC-BY). Le tappe sono unite in ordine di data dal percorso della Carovana
+(due tappe consecutive nella stessa città non vengono collegate) e i pallini vicini vengono
+raggruppati con Leaflet.markercluster.
 
 ## Con Docker (consigliato sul server)
 
@@ -32,7 +41,7 @@ docker compose up -d --build
 
 - Il sito ascolta su `127.0.0.1:8000` (porta modificabile con `CAROVANA_PORT` in `.env`):
   va esposto tramite il reverse proxy del server (nginx, Caddy, Traefik…) con HTTPS.
-- I CSV restano sul server nella cartella `./data` (montata in `/data` nel container):
+- I CSV e le foto restano sul server nella cartella `./data` (montata in `/data` nel container):
   per il backup basta copiare questa cartella.
 - Il container gira come utente non-root con UID/GID 1000. Se sul server la cartella del
   progetto appartiene a un altro utente, avvia con `UID=$(id -u) GID=$(id -g) docker compose up -d --build`.
@@ -50,6 +59,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+    client_max_body_size 64m;  # necessario per le foto dei contributi (default nginx: 1 MB)
 }
 ```
 

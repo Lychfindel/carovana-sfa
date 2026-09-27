@@ -62,8 +62,9 @@ a { color: var(--green-dark); }
 .page-home { overflow: hidden; }
 .home { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; height: calc(100vh - var(--topbar)); height: calc(100dvh - var(--topbar)); }
 .sidebar { overflow-y: auto; border-right: 1px solid var(--line); background: var(--white); padding: 1.25rem; }
-.map { height: 100%; background: #e6e0f5; } /* "mare" color lavanda alla scala nazionale */
-.map.show-tiles { background: #dfe6e9; }
+.map { height: 100%; background: #e6e0f5; } /* stesso colore della maschera fuori dall'Italia */
+/* OSM ritagliata: meno satura per stare nella palette */
+.tiles-osm-italia { filter: saturate(.55) sepia(.12) brightness(1.03); }
 
 /* pallini delle iniziative */
 .pin i { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--red); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(26,21,37,.35); transition: transform .15s; }
@@ -71,9 +72,11 @@ a { color: var(--green-dark); }
 .pin:hover i, .pin.is-active i { transform: scale(1.35); }
 .pin.is-active i { box-shadow: 0 0 0 4px rgba(215,38,61,.25), 0 1px 4px rgba(26,21,37,.35); }
 .pin.is-past.is-active i { box-shadow: 0 0 0 4px rgba(120,120,120,.25), 0 1px 4px rgba(26,21,37,.35); }
-.pin-cluster { border-radius: 50%; background: var(--red); border: 3px solid #fff; box-shadow: 0 1px 5px rgba(26,21,37,.35); color: #fff; font-weight: 700; font-size: .85rem; display: flex; align-items: center; justify-content: center; }
+.pin-cluster { border-radius: 50%; background: var(--red); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(26,21,37,.35); color: #fff; font-weight: 700; font-size: 10px; display: flex; align-items: center; justify-content: center; }
 .pin-cluster.is-past { background: var(--grey); }
-.pin-cluster span { line-height: 1; }
+/* eventi passati e futuri insieme */
+.pin-cluster.is-mixed { background: repeating-linear-gradient(45deg, var(--red) 0 3px, var(--grey) 3px 6px); }
+.pin-cluster span { line-height: 1; text-shadow: 0 0 2px rgba(26,21,37,.8), 0 0 1px rgba(26,21,37,.9); }
 
 .intro h1 { font-size: 1.5rem; }
 .intro p { margin: 0 0 1rem; color: var(--muted); font-size: .95rem; }
@@ -117,13 +120,21 @@ a { color: var(--green-dark); }
 .contribs h3 { font-size: 1.05rem; }
 .contrib { background: var(--paper); border-radius: 10px; padding: .85rem 1rem; margin-bottom: .75rem; font-size: .93rem; }
 .contrib p { margin: 0 0 .5rem; white-space: pre-line; }
-.contrib .by { color: var(--muted); font-size: .85rem; margin: 0; }
+.contrib-label { font-size: .75rem !important; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: .25rem 0 .2rem !important; }
+.contrib-foto { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; margin-top: .6rem; }
+.contrib-foto a { display: block; aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: var(--line); }
+.contrib-foto img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
+.contrib-foto a:hover img { transform: scale(1.05); }
 .tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
 .tag { font-size: .75rem; background: var(--white); border: 1px solid var(--lavender); color: var(--lavender-dark); padding: .1rem .5rem; border-radius: 999px; font-weight: 600; }
 .muted { color: var(--muted); font-size: .92rem; }
-.add-contrib { display: inline-block; margin-top: .25rem; font-weight: 600; font-size: .92rem; }
 
 .leaflet-tooltip { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+/* i titoli lunghi vanno a capo invece di allargare il tooltip */
+.leaflet-tooltip:has(.pin-tip) { white-space: normal; }
+.pin-tip { text-align: center; line-height: 1.35; width: max-content; max-width: 240px; }
+.pin-tip strong { display: block; font-weight: 700; color: var(--dark); }
+.pin-tip em { display: block; font-style: italic; font-weight: 400; color: var(--muted); }
 
 /* ---------- form pages ---------- */
 .page-form { background: var(--paper); }
@@ -150,6 +161,16 @@ input, textarea, select { font: inherit; color: var(--text); }
 .choices { display: flex; flex-direction: column; gap: .35rem; border: 1.5px solid transparent; border-radius: 10px; }
 .choice { display: flex; gap: .55rem; align-items: center; cursor: pointer; font-weight: 400; }
 .choice input { accent-color: var(--teal); width: 18px; height: 18px; }
+.file-drop { position: relative; display: flex; align-items: center; justify-content: center; min-height: 5.5rem; border: 2px dashed var(--lavender); border-radius: 12px; background: #fff; cursor: pointer; text-align: center; padding: 1rem; font-weight: 600; transition: background .15s, border-color .15s; }
+.file-drop:hover, .file-drop.is-over { background: var(--paper); border-color: var(--teal); }
+.file-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-drop small { display: block; font-weight: 400; color: var(--muted); }
+.file-previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: .5rem; margin-top: .6rem; }
+.file-preview { margin: 0; font-size: .72rem; color: var(--muted); }
+.file-preview img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; }
+.file-preview figcaption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: .15rem; }
+.file-preview.too-big img { outline: 3px solid var(--red); }
+.file-previews .error { grid-column: 1 / -1; }
 .picker-search { display: flex; gap: .5rem; margin-bottom: .35rem; }
 .picker-search input { flex: 1; }
 .geo-msg { font-size: .85rem; color: var(--green-dark); margin: 0 0 .35rem; min-height: 1em; }
@@ -185,6 +206,11 @@ input, textarea, select { font: inherit; color: var(--text); }
 .ed-field input[readonly] { background: var(--paper); color: var(--muted); }
 .wide, .ed-map { grid-column: 1 / -1; }
 .ed-map { height: 240px; border-radius: 10px; }
+.ed-foto { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ed-foto figure { position: relative; margin: 0; width: 110px; height: 110px; }
+.ed-foto img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: block; }
+.ed-foto-rm { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(26,21,37,.75); color: #fff; font-size: 1rem; line-height: 1; cursor: pointer; }
+.ed-foto-rm:hover { background: var(--red); }
 .ed-actions { display: flex; gap: .5rem; justify-content: space-between; }
 
 /* ---------- documenti: principi e volantino ---------- */

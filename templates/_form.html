@@ -25,8 +25,13 @@
       {% for i in iniziative %}
       <option value="{{ i.id }}" {% if cur == i.id %}selected{% endif %}>{{ i.data[:10] | replace('-', '/') }} · {{ i.citta }} – {{ i.titolo }}</option>
       {% endfor %}
-      <option value="generale" {% if cur == 'generale' %}selected{% endif %}>Nessuna in particolare (contributo generale)</option>
     </select>
+  {% elif f.type == 'foto' %}
+    <label class="file-drop" for="f-{{ f.name }}">
+      <input id="f-{{ f.name }}" name="{{ f.name }}" type="file" accept="image/jpeg,image/png,image/webp" multiple data-max="6" data-max-mb="10">
+      <span class="file-drop-txt">📷 Scegli le foto <small>oppure trascinale qui</small></span>
+    </label>
+    <div class="file-previews" id="f-{{ f.name }}-previews" aria-live="polite"></div>
   {% elif f.type == 'map' %}
     <div class="picker">
       <div class="picker-search">
@@ -45,10 +50,12 @@
   {% if err %}<p class="error">{{ err }}</p>{% endif %}
 </div>
 {% endfor %}
+{% if captcha %}
 {% set err = errors.get('captcha') %}
 <div class="field captcha{% if err %} has-error{% endif %}">
   <label for="f-captcha">Controllo anti-spam <span class="req">*</span></label>
   <div class="captcha-row"><span>{{ captcha }}</span><input id="f-captcha" name="captcha" inputmode="numeric" autocomplete="off" required></div>
   {% if err %}<p class="error">{{ err }}</p>{% endif %}
 </div>
+{% endif %}
 {% endmacro %}

@@ -14,6 +14,8 @@
 
   const ok = (r) => String(r.approvata).toLowerCase() === 'true';
   const label = (t, c) => (A.schema[t].fields[c] && A.schema[t].fields[c].label) || LABELS[c] || c;
+  const fotoList = (v) => (v || '').split(';').filter(Boolean);
+  const fotoUrl = (id, name) => A.foto.replace('__ID__', encodeURIComponent(id)).replace('__N__', encodeURIComponent(name));
   const iniName = (id) => {
     if (id === 'generale') return 'Contributo generale';
     const i = data.iniziative.find((x) => x.id === id);
@@ -34,7 +36,8 @@
 
   function summary(r) {
     if (table === 'iniziative') return { title: r.titolo || '(senza titolo)', meta: [r.data.replace('T', ' '), r.citta, r.chi].filter(Boolean).join(' · ') };
-    return { title: (r.contributo || '(vuoto)').slice(0, 110), meta: [iniName(r.iniziativa_id), r.chi, r.parte].filter(Boolean).join(' · ') };
+    const nf = fotoList(r.foto).length;
+    return { title: (r.proposte || r.info || (nf ? 'Solo foto' : '(vuoto)')).slice(0, 110), meta: [iniName(r.iniziativa_id), r.email, nf ? nf + ' foto' : ''].filter(Boolean).join(' · ') };
   }
 
   function render() {
@@ -67,13 +70,14 @@
     const cols = A.schema[table].columns.filter((c) => c !== 'approvata');
     cols.forEach((c) => {
       const def = A.schema[table].fields[c] || {};
+      if (def.type === 'foto') { f.append(fotoEditor(r, c, def)); return; }
       const w = el('label', 'ed-field' + (def.type === 'textarea' ? ' wide' : ''));
       w.append(el('span', null, label(table, c)));
       let inp;
       if (def.type === 'textarea') { inp = el('textarea'); inp.rows = 5; }
       else if (c === 'iniziativa_id') {
         inp = el('select');
-        const opts = [['', '—'], ['generale', 'Contributo generale']].concat(
+        const opts = [['', '—']].concat(
           data.iniziative.map((i) => [i.id, (i.data || '').slice(0, 10) + ' · ' + i.citta + ' – ' + i.titolo + (ok(i) ? '' : ' (non approvata)')]));
         if (r[c] && !opts.some((o) => o[0] === r[c])) opts.push([r[c], iniName(r[c])]);
         opts.forEach(([v, t]) => { const o = el('option', null, t); o.value = v; inp.append(o); });
@@ -134,6 +138,29 @@
     actions.append(del, close);
     f.append(actions);
     return f;
+  }
+
+  // foto del contributo: miniature con link all'originale e pulsante per toglierle
+  function fotoEditor(r, c, def) {
+    const w = el('div', 'ed-field wide');
+    w.append(el('span', null, def.label));
+    const grid = el('div', 'ed-foto');
+    const names = fotoList(r[c]);
+    if (!names.length) grid.append(el('p', 'help', 'Nessuna foto.'));
+    names.forEach((n) => {
+      const fig = el('figure');
+      const a = el('a'); a.href = fotoUrl(r.id, n); a.target = '_blank'; a.rel = 'noopener';
+      const img = el('img'); img.src = fotoUrl(r.id, n.replace('.jpg', '_t.jpg')); img.alt = n; img.loading = 'lazy';
+      a.append(img);
+      const rm = el('button', 'ed-foto-rm', '×'); rm.type = 'button'; rm.title = 'Togli questa foto';
+      rm.addEventListener('click', () => {
+        if (!confirm('Togliere questa foto? Verrà eliminata quando salvi.')) return;
+        r[c] = fotoList(r[c]).filter((x) => x !== n).join(';'); markDirty(); render();
+      });
+      fig.append(a, rm); grid.append(fig);
+    });
+    w.append(grid);
+    return w;
   }
 
   async function load(t) {

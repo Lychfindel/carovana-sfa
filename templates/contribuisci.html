@@ -1,25 +1,28 @@
 {% extends 'base.html' %}
 {% from '_form.html' import render_fields with context %}
 {% block title %}Contribuisci alla proposta{% endblock %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block body_class %}page-form{% endblock %}
 {% block content %}
 <main class="form-wrap">
   <div class="form-intro">
     <h1>Contribuisci alla proposta di legge</h1>
-    <p>Hai partecipato o organizzato una tappa della Carovana? Raccontaci cosa è emerso: critiche, modifiche, integrazioni e esperienze dai territori alla proposta di legge dal basso del Social Forum dell'Abitare.</p>
+    <p>Hai organizzato una tappa della Carovana? Raccontaci com'è andata e cosa è emerso sulla proposta di legge dal basso del Social Forum dell'Abitare: proposte, osservazioni, suggerimenti. Se vuoi, aggiungi qualche foto.</p>
+    <p>Per inviare il contributo usa la stessa email con cui hai proposto l'iniziativa.</p>
   </div>
   {% if sent %}
   <div class="done">
     <h2>Grazie per il tuo contributo!</h2>
-    <p>Lo leggeremo con attenzione. Una volta approvato comparirà nella scheda dell'iniziativa sulla mappa.</p>
+    <p>Lo leggeremo con attenzione. Una volta approvato comparirà, con le foto, nella scheda dell'iniziativa sulla mappa.</p>
     <p><a class="btn" href="{{ url_for('home') }}">Torna alla mappa</a> <a class="btn btn-ghost" href="{{ url_for('contribuisci') }}">Invia un altro contributo</a></p>
   </div>
   {% else %}
-  <form method="post" class="form" novalidate>
-    {% if errors %}<p class="form-error" role="alert">Controlla i campi segnati in rosso.</p>{% endif %}
+  <form method="post" class="form" enctype="multipart/form-data" novalidate>
+    {% if errors %}<p class="form-error" role="alert">Controlla i campi segnati in rosso.{% if files_lost %} Per sicurezza il browser non conserva i file: seleziona di nuovo le foto.{% endif %}</p>{% endif %}
     {{ render_fields(fields, values, errors, iniziative, preselect) }}
     <button type="submit" class="btn btn-big">Invia</button>
   </form>
   {% endif %}
 </main>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='foto.js') }}"></script>{% endblock %}

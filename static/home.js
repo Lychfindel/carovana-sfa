@@ -1,8 +1,6 @@
 (function () {
-  // Vista nazionale: regioni disegnate nei colori SFA. Zoomando su una città
-  // compaiono gradualmente le strade (tile) e le regioni sfumano.
+  // Mappa OpenStreetMap ritagliata sull'Italia: fuori dai confini una maschera copre le tile.
   const ITALY = L.latLngBounds([[35.4, 6.3], [47.2, 18.8]]);
-  const FADE = [7, 9.5]; // zoom in cui le tile passano da invisibili a piene
   const map = L.map('map', {
     zoomSnap: 0.25, zoomDelta: 0.5, maxZoom: 18,
     maxBounds: ITALY.pad(0.15), maxBoundsViscosity: 1
@@ -26,42 +24,73 @@
     else if (map.getZoom() < z) map.setZoom(z);
   }).observe(map.getContainer());
 
-  map.createPane('regions').style.zIndex = 350; // sopra le tile, sotto i pallini
-  map.getPane('regions').style.pointerEvents = 'none';
-  const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, opacity: 0,
+  const pane = (name, z) => { map.createPane(name).style.zIndex = z; map.getPane(name).style.pointerEvents = 'none'; };
+  pane('regions', 350);  // confini regionali tratteggiati
+  pane('mask', 360);     // copre tutto ciò che è fuori dall'Italia
+  pane('route', 380);    // percorso della Carovana, sotto i pallini
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, className: 'tiles-osm-italia',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Confini <a href="https://github.com/openpolis/geojson-italy">ISTAT/openpolis</a>'
   }).addTo(map);
-  let regions = null;
-  fetch(window.REGIONI_URL).then((r) => r.json()).then((geo) => {
-    regions = L.geoJSON(geo, { pane: 'regions', interactive: false, style: regionStyle }).addTo(map);
+  // maschera e confini hanno contorni semplificati: a scala di città sfumano
+  // per lasciare la mappa OSM completa (coste, porti, isole minori)
+  const FADE = [9, 11];
+  const k = () => Math.min(1, Math.max(0, (FADE[1] - map.getZoom()) / (FADE[1] - FADE[0])));
+  const regionStyle = () => ({ color: '#7c6ab5', weight: 0.8, opacity: 0.35 * k(), dashArray: '3 3', fillOpacity: 0 });
+  const maskStyle = () => ({ color: '#7c6ab5', weight: 1.5, opacity: 0.8 * k(), fillColor: '#e6e0f5', fillOpacity: k() });
+  const overlay = (url, name, style) => fetch(url).then((r) => r.json()).then((geo) => {
+    const layer = L.geoJSON(geo, { pane: name, interactive: false, style }).addTo(map);
+    map.on('zoomend', () => layer.setStyle(style));
   });
+  overlay(window.REGIONI_URL, 'regions', regionStyle);
+  overlay(window.MASCHERA_URL, 'mask', maskStyle);
 
-  function fade() {
-    const z = map.getZoom();
-    return Math.min(1, Math.max(0, (z - FADE[0]) / (FADE[1] - FADE[0])));
+  // Percorso della Carovana: le tappe unite in ordine di data con archi tratteggiati
+  function arc(a, b) {
+    const pa = map.project(a, 6), pb = map.project(b, 6);
+    const mid = pa.add(pb).divideBy(2), d = pb.subtract(pa);
+    const ctrl = mid.add(L.point(-d.y, d.x).multiplyBy(0.18)); // punto di controllo di lato
+    const pts = [];
+    for (let t = 0; t <= 1.0001; t += 1 / 24) {
+      const x = (1 - t) * (1 - t) * pa.x + 2 * (1 - t) * t * ctrl.x + t * t * pb.x;
+      const y = (1 - t) * (1 - t) * pa.y + 2 * (1 - t) * t * ctrl.y + t * t * pb.y;
+      pts.push(map.unproject(L.point(x, y), 6));
+    }
+    return pts;
   }
-  function regionStyle() {
-    const f = fade();
-    return { color: '#b8a9e0', weight: 1.2, opacity: 1 - f * 0.6, fillColor: '#fdf6df', fillOpacity: 1 - f };
+  function drawRoute(list) {
+    if (list.length < 2) return;
+    // tappe in ordine di data; due tappe consecutive nella stessa città (entro ~20 km)
+    // non hanno bisogno di un arco tra loro
+    const fermate = [];
+    list.slice().sort((x, y) => (x.data < y.data ? -1 : 1)).forEach((i) => {
+      const prev = fermate[fermate.length - 1];
+      if (prev && map.distance([prev.lat, prev.lng], [i.lat, i.lng]) < 20000) return;
+      fermate.push({ lat: i.lat, lng: i.lng, past: isPast(i) }); // past = la carovana ci è già arrivata
+    });
+    for (let k = 1; k < fermate.length; k++) {
+      const a = fermate[k - 1], b = fermate[k];
+      const done = b.past;
+      L.polyline(arc([a.lat, a.lng], [b.lat, b.lng]), {
+        pane: 'route', interactive: false, smoothFactor: 1,
+        color: done ? '#8a8494' : '#d7263d', weight: done ? 2 : 2.5,
+        opacity: done ? 0.6 : 0.85, dashArray: done ? '2 6' : '8 7', lineCap: 'round'
+      }).addTo(map);
+    }
   }
-  map.on('zoom', () => {
-    const f = fade();
-    tiles.setOpacity(f);
-    map.getContainer().classList.toggle('show-tiles', f > 0);
-    if (regions) regions.setStyle(regionStyle);
-  });
 
   // Pallini (divIcon) raggruppati quando sono vicini
   const cluster = L.markerClusterGroup({
     maxClusterRadius: 28, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
     iconCreateFunction: (c) => {
       const kids = c.getAllChildMarkers();
-      const next = kids.some((m) => !m.options.past);
+      const past = kids.filter((m) => m.options.past).length;
+      const state = past === 0 ? '' : past === kids.length ? ' is-past' : ' is-mixed'; // mixed = passati e futuri
       return L.divIcon({
         html: '<span>' + kids.length + '</span>',
-        className: 'pin-cluster' + (next ? '' : ' is-past'),
-        iconSize: [30, 30]
+        className: 'pin-cluster' + state,
+        iconSize: [18, 18] // stessa dimensione dei pallini singoli
       });
     }
   }).addTo(map);
@@ -94,6 +123,11 @@
   const shortDate = (s) => {
     const d = parseDate(s);
     return d ? { d: d.getDate(), m: d.toLocaleDateString('it-IT', { month: 'short' }).replace('.', '') } : { d: '?', m: '' };
+  };
+  const tipDate = (s) => { // DD.MM.YY
+    const d = parseDate(s);
+    const p2 = (n) => String(n).padStart(2, '0');
+    return d ? p2(d.getDate()) + '.' + p2(d.getMonth() + 1) + '.' + p2(d.getFullYear() % 100) : '';
   };
   const safeUrl = (u) => /^https?:\/\//i.test(u || '') ? u : null;
 
@@ -152,25 +186,29 @@
     links.append(dir);
     a.append(links);
 
+    if (!i.contributi.length) return;
     const sec = el('section', 'contribs');
-    sec.append(el('h3', null, 'Contributi alla proposta' + (i.contributi.length ? ' (' + i.contributi.length + ')' : '')));
-    if (!i.contributi.length) {
-      sec.append(el('p', 'muted', isPast(i)
-        ? 'Nessun contributo ancora pubblicato per questa iniziativa.'
-        : 'I contributi emersi da questa iniziativa verranno pubblicati qui.'));
-    }
+    sec.append(el('h3', null, 'Contributi alla proposta (' + i.contributi.length + ')'));
     i.contributi.forEach((c) => {
       const card = el('div', 'contrib');
-      const tags = el('div', 'tags');
-      [c.parte, c.tipo].filter(Boolean).forEach((t) => tags.append(el('span', 'tag', t)));
-      card.append(tags);
-      (c.contributo || '').split(/\n{2,}/).forEach((p) => card.append(el('p', null, p)));
-      if (c.chi) card.append(el('p', 'by', '— ' + c.chi));
+      const para = (label, text) => {
+        if (!text) return;
+        card.append(el('p', 'contrib-label', label));
+        text.split(/\n{2,}/).forEach((p) => card.append(el('p', null, p)));
+      };
+      para('Com\'è andata', c.info);
+      para('Proposte, osservazioni, suggerimenti', c.proposte);
+      if (c.foto && c.foto.length) {
+        const g = el('div', 'contrib-foto');
+        c.foto.forEach((f) => {
+          const a = el('a'); a.href = f.url; a.target = '_blank'; a.rel = 'noopener';
+          const img = el('img'); img.src = f.thumb; img.alt = 'Foto dell\'iniziativa'; img.loading = 'lazy';
+          a.append(img); g.append(a);
+        });
+        card.append(g);
+      }
       sec.append(card);
     });
-    const add = el('a', 'add-contrib', '+ Aggiungi un contributo da questa iniziativa');
-    add.href = window.CONTRIBUISCI_URL + '?iniziativa=' + encodeURIComponent(i.id);
-    sec.append(add);
     a.append(sec);
   }
 
@@ -218,11 +256,14 @@
         zIndexOffset: isPast(i) ? 0 : 500, // i pallini rossi sopra i grigi
         alt: i.citta + ' – ' + i.titolo, keyboard: true
       });
-      m.bindTooltip(i.citta + ' – ' + i.titolo, { direction: 'top', offset: [0, -10] });
+      const tip = el('div', 'pin-tip');
+      tip.append(el('strong', null, i.titolo), el('em', null, i.citta + ' - ' + tipDate(i.data)));
+      m.bindTooltip(tip, { direction: 'top', offset: [0, -10] });
       m.on('click', () => select(i.id, false));
       markers[i.id] = m;
     });
     cluster.addLayers(Object.values(markers));
+    drawRoute(items);
     if (!items.some((i) => !isPast(i)) && items.length) {
       filter = 'past';
       document.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', x.dataset.filter === 'past'));
