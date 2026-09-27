@@ -46,17 +46,28 @@ if (isset($_GET['api'])) {
         if (array_key_exists('foto', $c)) $c['foto'] = implode(';', foto_list($c['foto']));
         $clean[] = $c;
     }
-    with_lock(function () use ($table, $clean) {
+    $old_rows = with_lock(function () use ($table, $clean) {
+        $old_rows = [];
+        foreach (read_rows($table) as $r) $old_rows[$r['id']] = $r;
         if ($table === 'contributi') { // elimina dal disco le foto tolte o dei contributi eliminati
             $keep = [];
             foreach ($clean as $c) $keep[$c['id']] = foto_list($c['foto']);
-            foreach (read_rows($table) as $old) {
+            foreach ($old_rows as $old) {
                 delete_photos($old['id'], isset($keep[$old['id']]) ? $keep[$old['id']] : []);
             }
         }
         write_rows($table, $clean);
+        return $old_rows;
     });
-    json_out(['ok' => true, 'rows' => $clean]);
+    // avvisa chi ha inviato le righe appena approvate (da non approvata ad approvata)
+    $notificati = 0;
+    foreach ($clean as $c) {
+        if (is_true($c['approvata']) && isset($old_rows[$c['id']]) && !is_true($old_rows[$c['id']]['approvata'])
+                && notify_approved($table, $c)) {
+            $notificati++;
+        }
+    }
+    json_out(['ok' => true, 'rows' => $clean, 'notificati' => $notificati]);
 }
 
 // --- Download CSV ---

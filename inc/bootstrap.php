@@ -5,6 +5,7 @@
 define('CAROVANA', true);
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/forms.php';
+require_once __DIR__ . '/mail.php';
 
 date_default_timezone_set(TIMEZONE);
 
@@ -456,6 +457,7 @@ function handle_form($table, $captcha = true, $check = null)
                 $row['inviato_il'] = date('Y-m-d H:i:s');
                 $row['approvata'] = 'False';
                 append_row($table, $row);
+                notify_new($table, $row);
                 $sent = true;
             }
         }

@@ -37,10 +37,37 @@ licenza CC-BY). Le tappe sono unite in ordine di data dal percorso della Carovan
 (due tappe consecutive nella stessa città non vengono collegate) e i pallini vicini vengono
 raggruppati con Leaflet.markercluster.
 
+## Email
+
+Se è configurato un server SMTP (in `.env` con Docker, oppure in `config.php`: `SMTP_*`,
+`MAIL_FROM`, `ADMIN_EMAIL`, `SITE_URL`), il sito invia:
+
+| Quando | A chi | Cosa |
+|---|---|---|
+| Arriva una proposta di iniziativa | `ADMIN_EMAIL` | tutti i dati e il link alla gestione (*Rispondi* scrive a chi l'ha inviata) |
+| | chi l'ha proposta | conferma: sarà sulla mappa appena approvata |
+| Arriva un contributo | `ADMIN_EMAIL` | tutti i dati e il link alla gestione |
+| | l'email indicata nel modulo | conferma: sarà pubblicato appena approvato |
+| Un'iniziativa viene approvata | chi l'ha proposta | link alla sua scheda sulla mappa e link personale a `contribuisci.php?iniziativa=<id>` |
+| Un contributo viene approvato | l'email del contributo | link alla scheda dell'iniziativa |
+
+L'avviso di approvazione parte quando, nella gestione, una riga passa da non approvata ad
+approvata e si salva (la gestione mostra quante email sono state inviate). Senza `SMTP_HOST`
+non viene inviata nessuna email.
+
+Il sito usa un piccolo client SMTP interno (nessuna libreria da installare): STARTTLS (porta
+587) o SSL (porta 465) con verifica del certificato del server, autenticazione PLAIN/LOGIN,
+testo UTF-8. Le email partono dopo che la pagina è già stata consegnata al visitatore; se il
+server SMTP non risponde i moduli funzionano lo stesso e l'errore finisce nel log di PHP.
+
+- `SITE_URL` (es. `https://carovana.example.org`) serve per i link nelle email: dietro un
+  reverse proxy il sito non può ricavarlo da solo.
+- Se rinomini `gestione.php`, indica il nuovo nome in `ADMIN_PAGE` (per il link nella mail all'admin).
+
 ## Con Docker (consigliato sul server)
 
 ```bash
-cp .env.example .env        # poi cambia almeno ADMIN_PASSWORD
+cp .env.example .env        # poi cambia almeno ADMIN_PASSWORD (e imposta SMTP e SITE_URL per le email)
 docker compose up -d --build
 ```
 
@@ -123,9 +150,10 @@ Le domande sono definite in `inc/forms.php` nelle liste `FORM_INIZIATIVA` e
 index.php, principi.php, volantino.php, proponi.php, contribuisci.php, gestione.php
 api.php             dati pubblici per la mappa
 foto.php            foto dei contributi (solo se approvati)
-config.php          password e impostazioni
+config.php          password e impostazioni (anche SMTP)
 inc/bootstrap.php   funzioni condivise (CSV con lock, validazione, foto, captcha, rendering campi)
 inc/forms.php       definizione delle domande dei form
+inc/mail.php        email: client SMTP e testi delle notifiche
 inc/header.php, inc/footer.php
 static/             CSS, JavaScript (mappa, selettore posizione, foto, editor admin), GeoJSON, logo, PDF
 data/               CSV e foto (non accessibile dal web)

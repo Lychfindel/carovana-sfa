@@ -31,6 +31,7 @@ require __DIR__ . '/inc/header.php';
   <div class="done">
     <h2>Grazie per il tuo contributo!</h2>
     <p>Lo leggeremo con attenzione. Una volta approvato comparirà, con le foto, nella scheda dell'iniziativa sulla mappa.</p>
+    <?php if (mail_enabled()): ?><p>Ti abbiamo inviato un'email di conferma, e te ne manderemo un'altra quando il contributo sarà pubblicato.</p><?php endif; ?>
     <p><a class="btn" href="index.php">Torna alla mappa</a> <a class="btn btn-ghost" href="contribuisci.php">Invia un altro contributo</a></p>
   </div>
   <?php else: ?>

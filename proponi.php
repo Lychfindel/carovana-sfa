@@ -18,6 +18,7 @@ require __DIR__ . '/inc/header.php';
   <div class="done">
     <h2>Grazie, proposta ricevuta!</h2>
     <p>Le daremo un'occhiata e, una volta approvata, la tua iniziativa comparirà sulla mappa della Carovana. Se serve qualche chiarimento ti scriviamo all'email che ci hai lasciato.</p>
+    <?php if (mail_enabled()): ?><p>Ti abbiamo inviato un'email di conferma, e te ne manderemo un'altra quando l'iniziativa sarà online.</p><?php endif; ?>
     <p><a class="btn" href="index.php">Torna alla mappa</a> <a class="btn btn-ghost" href="proponi.php">Proponi un'altra iniziativa</a></p>
   </div>
   <?php else: ?>
