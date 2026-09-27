@@ -75,7 +75,8 @@ a { color: var(--green-dark); }
 .pin-cluster { border-radius: 50%; background: var(--red); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(26,21,37,.35); color: #fff; font-weight: 700; font-size: 10px; display: flex; align-items: center; justify-content: center; }
 .pin-cluster.is-past { background: var(--grey); }
 /* eventi passati e futuri insieme */
-.pin-cluster.is-mixed { background: repeating-linear-gradient(45deg, var(--red) 0 3px, var(--grey) 3px 6px); }
+/* .pin-cluster.is-mixed { background: repeating-linear-gradient(45deg, var(--red) 0 3px, var(--grey) 3px 6px); } */
+.pin-cluster.is-mixed { background: linear-gradient(135deg, var(--grey) 50%, var(--red) 50%); }
 .pin-cluster span { line-height: 1; text-shadow: 0 0 2px rgba(26,21,37,.8), 0 0 1px rgba(26,21,37,.9); }
 
 .intro h1 { font-size: 1.5rem; }
