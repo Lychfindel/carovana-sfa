@@ -32,6 +32,28 @@ licenza CC-BY). Le tappe sono unite in ordine di data dal percorso della Carovan
 (due tappe consecutive nella stessa città non vengono collegate) e i pallini vicini vengono
 raggruppati con Leaflet.markercluster.
 
+## Email
+
+Se è configurato un server SMTP (variabili `SMTP_*`, `MAIL_FROM`, `ADMIN_EMAIL`, `SITE_URL`
+in `.env`), il sito invia:
+
+| Quando | A chi | Cosa |
+|---|---|---|
+| Arriva una proposta di iniziativa | `ADMIN_EMAIL` | tutti i dati e il link alla gestione (*Rispondi* scrive a chi l'ha inviata) |
+| | chi l'ha proposta | conferma: sarà sulla mappa appena approvata |
+| Arriva un contributo | `ADMIN_EMAIL` | tutti i dati e il link alla gestione |
+| | l'email indicata nel modulo | conferma: sarà pubblicato appena approvato |
+| Un'iniziativa viene approvata | chi l'ha proposta | link alla sua scheda sulla mappa e link personale a `/contribuisci?iniziativa=<id>` |
+| Un contributo viene approvato | l'email del contributo | link alla scheda dell'iniziativa |
+
+L'avviso di approvazione parte quando, nella gestione, una riga passa da non approvata ad
+approvata e si salva (la gestione mostra quante email sono state inviate). Le email partono in
+background: se il server SMTP è lento o non raggiungibile i moduli funzionano lo stesso e
+l'errore finisce nei log (`docker compose logs`). Senza `SMTP_HOST` non viene inviata nessuna email.
+
+`SITE_URL` (es. `https://carovana.example.org`) serve per i link nelle email: dietro un reverse
+proxy il sito non può ricavarlo da solo.
+
 ## Con Docker (consigliato sul server)
 
 ```bash
@@ -81,6 +103,12 @@ ADMIN_PASSWORD='una-password-robusta' .venv/bin/python app.py
 | `SECRET_KEY` | generata in `data/.secret_key` | chiave per le sessioni |
 | `CAROVANA_DATA_DIR` | `./data` (`/data` in Docker) | cartella dei CSV |
 | `COOKIE_SECURE` | vuoto | `1` se il sito è in HTTPS |
+| `SITE_URL` | indirizzo della richiesta | indirizzo pubblico del sito, per i link nelle email |
+| `SMTP_HOST`, `SMTP_PORT` | vuoto, `587` | server SMTP (vuoto = niente email) |
+| `SMTP_SECURITY` | `starttls` (`ssl` se porta 465) | `starttls`, `ssl` oppure `none` |
+| `SMTP_USER`, `SMTP_PASSWORD` | vuoti | credenziali SMTP |
+| `MAIL_FROM` | vuoto | mittente, es. `Carovana SFA <carovana@example.org>` |
+| `ADMIN_EMAIL` | vuoto | chi riceve gli avvisi (più indirizzi separati da virgola) |
 
 ## In produzione senza Docker
 

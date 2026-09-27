@@ -14,6 +14,7 @@
   <div class="done">
     <h2>Grazie, proposta ricevuta!</h2>
     <p>Le daremo un'occhiata e, una volta approvata, la tua iniziativa comparirà sulla mappa della Carovana. Se serve qualche chiarimento ti scriviamo all'email che ci hai lasciato.</p>
+    {% if mail_enabled %}<p>Ti abbiamo inviato un'email di conferma, e te ne manderemo un'altra quando l'iniziativa sarà online.</p>{% endif %}
     <p><a class="btn" href="{{ url_for('home') }}">Torna alla mappa</a> <a class="btn btn-ghost" href="{{ url_for('proponi') }}">Proponi un'altra iniziativa</a></p>
   </div>
   {% else %}

@@ -170,6 +170,7 @@
   }
 
   async function save() {
+    let notificati = 0;
     $('save').disabled = true; status('Salvataggio…');
     try {
       for (const t of ['iniziative', 'contributi']) {
@@ -180,10 +181,13 @@
           body: JSON.stringify({ rows: data[t] })
         });
         if (!r.ok) throw new Error(r.status);
-        data[t] = (await r.json()).rows; dirty[t] = false;
+        const res = await r.json();
+        data[t] = res.rows; dirty[t] = false; notificati += res.notificati || 0;
       }
       open = null; render();
-      status('Salvato ✓');
+      const avviso = notificati === 1 ? ' · inviata 1 email di approvazione'
+        : notificati > 1 ? ' · inviate ' + notificati + ' email di approvazione' : '';
+      status('Salvato ✓' + avviso);
     } catch (e) {
       $('save').disabled = false;
       status('Errore nel salvataggio (' + e.message + '). Se la sessione è scaduta ricarica la pagina.', true);

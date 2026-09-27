@@ -10,10 +10,14 @@ import random
 import re
 import secrets
 import shutil
+import smtplib
+import ssl
 import threading
 import uuid
 import warnings
 from datetime import datetime
+from email.message import EmailMessage
+from email.utils import formataddr, make_msgid, parseaddr
 from functools import wraps
 from pathlib import Path
 
@@ -329,11 +333,165 @@ def handle_form(table, template, captcha=True, check=None, **ctx):
                 row.update(inviato_il=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                            approvata="False")
                 append_row(table, row)
+                notify_new(table, row)
                 sent = True
     has_files = any(f.filename for f in request.files.getlist("foto")) if request.method == "POST" else False
     return render_template(template, fields=form, values=values, errors=errors, sent=sent,
                            captcha=new_captcha() if captcha else None,
                            files_lost=bool(errors) and has_files, **ctx)
+
+
+# ---------------------------------------------------------------------------
+# Email (SMTP): conferme a chi invia, avvisi all'admin, avviso di approvazione.
+# Se SMTP_HOST non è impostato il sito funziona uguale, senza inviare email.
+# ---------------------------------------------------------------------------
+MAIL = {
+    "host": os.environ.get("SMTP_HOST", ""),
+    "port": int(os.environ.get("SMTP_PORT") or 587),
+    "user": os.environ.get("SMTP_USER", ""),
+    "password": os.environ.get("SMTP_PASSWORD", ""),
+    # starttls (porta 587), ssl (porta 465) oppure none
+    "security": (os.environ.get("SMTP_SECURITY") or "").lower()
+                or ("ssl" if os.environ.get("SMTP_PORT") == "465" else "starttls"),
+    "from": os.environ.get("MAIL_FROM", ""),
+    "admin": [a.strip() for a in os.environ.get("ADMIN_EMAIL", "").split(",") if a.strip()],
+}
+MAIL_FIRMA = "Social Forum dell'Abitare – Carovana per i diritti dell'abitare"
+
+
+def mail_enabled():
+    return bool(MAIL["host"] and MAIL["from"])
+
+
+def site_url():
+    """Indirizzo pubblico del sito per i link nelle email (dietro un proxy va impostato SITE_URL)."""
+    return (os.environ.get("SITE_URL") or request.host_url).rstrip("/")
+
+
+def _deliver(msg):
+    try:
+        ctx = ssl.create_default_context()
+        if MAIL["security"] == "ssl":
+            smtp = smtplib.SMTP_SSL(MAIL["host"], MAIL["port"], timeout=20, context=ctx)
+        else:
+            smtp = smtplib.SMTP(MAIL["host"], MAIL["port"], timeout=20)
+        with smtp:
+            if MAIL["security"] == "starttls":
+                smtp.starttls(context=ctx)
+            if MAIL["user"]:
+                smtp.login(MAIL["user"], MAIL["password"])
+            smtp.send_message(msg)
+        app.logger.info("Email inviata a %s: %s", msg["To"], msg["Subject"])
+    except Exception:  # un problema con la posta non deve mai bloccare il sito
+        app.logger.exception("Invio email non riuscito a %s: %s", msg["To"], msg["Subject"])
+
+
+def send_mail(to, subject, body, reply_to=None):
+    """Invia in background, così un server SMTP lento non rallenta la risposta."""
+    to = [a for a in ([to] if isinstance(to, str) else to) if a and "@" in a]
+    if not mail_enabled() or not to:
+        return False
+    msg = EmailMessage()
+    msg["From"] = MAIL["from"]
+    msg["To"] = ", ".join(to)
+    msg["Subject"] = " ".join(subject.split())  # niente a capo negli header
+    msg["Message-ID"] = make_msgid(domain=parseaddr(MAIL["from"])[1].split("@")[-1] or None)
+    if reply_to:
+        msg["Reply-To"] = ", ".join([reply_to] if isinstance(reply_to, str) else reply_to)
+    msg.set_content(body + "\n\n-- \n" + MAIL_FIRMA + "\n")
+    threading.Thread(target=_deliver, args=(msg,), daemon=True).start()
+    return True
+
+
+def fmt_data(v):
+    try:
+        d = datetime.strptime(v, "%Y-%m-%dT%H:%M")
+        return d.strftime("%d/%m/%Y, ore %H:%M")
+    except ValueError:
+        return v
+
+
+def dettagli(table, row):
+    """Tutti i campi del modulo, per la mail all'admin."""
+    righe = []
+    for f in TABLES[table]["form"]:
+        if f["type"] == "map":
+            v = f"https://www.openstreetmap.org/?mlat={row['lat']}&mlon={row['lng']}#map=16/{row['lat']}/{row['lng']}"
+        elif f["type"] == "foto":
+            v = f"{len(foto_list(row.get('foto')))} foto"
+        elif f["type"] == "iniziativa":
+            ini = find_row("iniziative", row[f["name"]])
+            v = f"{ini['titolo']} ({ini['citta']}, {fmt_data(ini['data'])})" if ini else row[f["name"]]
+        elif f["type"] == "datetime-local":
+            v = fmt_data(row[f["name"]])
+        else:
+            v = row.get(f["name"], "")
+        v = v or "—"
+        label = f["label"].rstrip("?")
+        righe.append(f"{label}\n{v}\n" if "\n" in v or len(v) > 60 else f"{label}: {v}")
+    return "\n".join(righe)
+
+
+def find_row(table, rid):
+    return next((r for r in read_rows(table) if r["id"] == rid), None)
+
+
+def notify_new(table, row):
+    site = site_url()
+    admin_link = f"{site}/{ADMIN_PATH}"
+    if table == "iniziative":
+        send_mail(MAIL["admin"], f"[Carovana] Nuova proposta di iniziativa: {row['titolo']} ({row['citta']})",
+                  "È arrivata una nuova proposta di iniziativa da approvare.\n\n"
+                  f"{dettagli(table, row)}\n\nPer approvarla: {admin_link}", reply_to=row["email"])
+        send_mail(row["email"], "Abbiamo ricevuto la tua proposta di iniziativa",
+                  "Ciao,\n\n"
+                  f"grazie per aver proposto l'iniziativa «{row['titolo']}» ({row['citta']}, {fmt_data(row['data'])}) "
+                  "alla Carovana per i diritti dell'abitare.\n\n"
+                  "La proposta è stata inviata correttamente: la controlleremo e, appena sarà approvata, "
+                  f"comparirà sulla mappa della Carovana ({site}). Ti scriveremo quando sarà online.\n\n"
+                  "Se vuoi correggere o aggiungere qualcosa, rispondi pure a questa email.",
+                  reply_to=MAIL["admin"] or None)
+    else:
+        ini = find_row("iniziative", row["iniziativa_id"]) or {"titolo": "?", "citta": "?"}
+        send_mail(MAIL["admin"], f"[Carovana] Nuovo contributo: {ini['titolo']} ({ini['citta']})",
+                  "È arrivato un nuovo contributo da approvare.\n\n"
+                  f"{dettagli(table, row)}\n\nPer approvarlo: {admin_link}", reply_to=row["email"])
+        send_mail(row["email"], "Abbiamo ricevuto il tuo contributo",
+                  "Ciao,\n\n"
+                  f"grazie per il contributo sull'iniziativa «{ini['titolo']}» ({ini['citta']}).\n\n"
+                  "Il contributo è stato inviato correttamente: lo leggeremo con attenzione e, appena sarà "
+                  "approvato, comparirà nella scheda dell'iniziativa sulla mappa della Carovana:\n"
+                  f"{site}/#{row['iniziativa_id']}\n\n"
+                  "Se vuoi correggere o aggiungere qualcosa, rispondi pure a questa email.",
+                  reply_to=MAIL["admin"] or None)
+
+
+def notify_approved(table, row):
+    site = site_url()
+    if table == "iniziative":
+        return send_mail(row["email"], f"La tua iniziativa è sulla mappa della Carovana: {row['titolo']}",
+                         "Ciao,\n\n"
+                         f"l'iniziativa «{row['titolo']}» ({row['citta']}, {fmt_data(row['data'])}) è stata approvata "
+                         "ed è ora visibile a tutti sulla mappa della Carovana:\n"
+                         f"{site}/#{row['id']}\n\n"
+                         "Dopo l'iniziativa raccontaci com'è andata e cosa è emerso sulla proposta di legge: "
+                         "proposte, osservazioni, suggerimenti e qualche foto. Puoi farlo da questa pagina, "
+                         "usando questa stessa email:\n"
+                         f"{site}/contribuisci?iniziativa={row['id']}",
+                         reply_to=MAIL["admin"] or None)
+    ini = find_row("iniziative", row["iniziativa_id"]) or {"titolo": "?", "citta": "?"}
+    return send_mail(row["email"], f"Il tuo contributo è stato pubblicato: {ini['titolo']}",
+                     "Ciao,\n\n"
+                     f"il tuo contributo sull'iniziativa «{ini['titolo']}» ({ini['citta']}) è stato approvato "
+                     "ed è ora visibile a tutti nella scheda dell'iniziativa sulla mappa della Carovana:\n"
+                     f"{site}/#{row['iniziativa_id']}\n\n"
+                     "Grazie per aver contribuito alla proposta di legge dal basso sull'abitare!",
+                     reply_to=MAIL["admin"] or None)
+
+
+@app.context_processor
+def inject_mail():
+    return {"mail_enabled": mail_enabled()}
 
 
 # ---------------------------------------------------------------------------
@@ -457,12 +615,17 @@ def admin_api(table):
             r["foto"] = ";".join(foto_list(r["foto"]))
         clean.append(r)
     with _lock:
+        old_rows = {r["id"]: r for r in read_rows(table)}
         if table == "contributi":  # elimina dal disco le foto tolte o dei contributi eliminati
             keep = {r["id"]: foto_list(r["foto"]) for r in clean}
-            for old in read_rows(table):
+            for old in old_rows.values():
                 delete_photos(old["id"], keep.get(old["id"], ()))
         write_rows(table, clean)
-    return jsonify(ok=True, rows=clean)
+    # avvisa chi ha inviato le righe appena approvate (da non approvata ad approvata)
+    notificati = sum(1 for r in clean
+                     if is_true(r["approvata"]) and r["id"] in old_rows
+                     and not is_true(old_rows[r["id"]]["approvata"]) and notify_approved(table, r))
+    return jsonify(ok=True, rows=clean, notificati=notificati)
 
 
 @app.route(f"/{ADMIN_PATH}/csv/<table>")
