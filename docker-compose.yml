@@ -1,0 +1,21 @@
+services:
+  carovana:
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: carovana-php:latest
+    container_name: carovana
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/var/www/html/data
+    ports:
+      # solo su localhost: il sito va esposto tramite il reverse proxy del server
+      - "127.0.0.1:${CAROVANA_PORT:-8000}:80"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1/api.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

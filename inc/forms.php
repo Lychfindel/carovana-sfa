@@ -5,7 +5,7 @@ defined('CAROVANA') || exit;
 // CSV vengono ricavate da qui: per aggiungere/togliere una domanda basta
 // modificare queste liste.
 //   'public' => true  -> il campo compare sul sito (una volta approvato)
-// Tipi: text, email, url, textarea, datetime-local, select, radio, map, iniziativa
+// Tipi: text, email, url, textarea, datetime-local, select, radio, map, iniziativa, foto
 
 const FORM_INIZIATIVA = [
     ['name' => 'chi', 'label' => 'Chi?', 'type' => 'text', 'required' => true, 'public' => true,
@@ -33,34 +33,18 @@ const FORM_INIZIATIVA = [
      'placeholder' => 'https://sfa.ocio-venezia.it/'],
 ];
 
-// NB: il Google Form di riferimento non è pubblico; questi campi sono una
-// proposta da allineare alle domande reali.
 const FORM_CONTRIBUTO = [
     ['name' => 'iniziativa_id', 'label' => 'A quale iniziativa si riferisce?', 'type' => 'iniziativa',
      'required' => true, 'public' => false,
-     'help' => "Scegli l'iniziativa della Carovana in cui è nato questo contributo"],
-    ['name' => 'chi', 'label' => 'Chi?', 'type' => 'text', 'required' => true, 'public' => true,
-     'help' => 'Il tuo nome o quello della realtà che invia il contributo'],
+     'help' => "Scegli l'iniziativa della Carovana che hai organizzato"],
     ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true, 'public' => false,
-     'help' => "Un'email che possiamo usare per contattarti"],
-    ['name' => 'parte', 'label' => 'A quale parte della proposta di legge si riferisce?',
-     'type' => 'select', 'required' => true, 'public' => true,
-     'help' => 'I 10 punti del volantino della proposta',
-     'options' => ['Proposta nel suo complesso',
-                   '1. La casa come diritto garantito dallo Stato',
-                   '2. Più case popolari, meglio mantenute',
-                   '3. Affitti sociali a prezzi sostenibili',
-                   '4. Regolazione affitti',
-                   '5. Transizione ecologica equa',
-                   '6. Stop alle speculazioni',
-                   '7. Politiche abitative e rigenerazione urbana',
-                   '8. Mappatura e recupero degli immobili inutilizzati',
-                   '9. Riforma della fiscalità immobiliare',
-                   '10. Rafforzamento della Pubblica Amministrazione',
-                   'Altro']],
-    ['name' => 'tipo', 'label' => 'Tipo di contributo', 'type' => 'radio', 'required' => true, 'public' => true,
-     'options' => ['Modifica a una proposta esistente', 'Nuova proposta / integrazione',
-                   'Critica o osservazione', 'Esperienza dal territorio']],
-    ['name' => 'contributo', 'label' => 'Il contributo', 'type' => 'textarea', 'required' => true,
-     'public' => true, 'help' => 'Cosa è emerso dalla discussione? Cosa manca, cosa cambieresti?'],
+     'help' => "La stessa email che hai usato per proporre l'iniziativa"],
+    ['name' => 'info', 'label' => "Informazioni aggiuntive sull'iniziativa", 'type' => 'textarea',
+     'required' => false, 'public' => true,
+     'help' => "Com'è andata? Chi ha partecipato, quante persone, cosa è successo…"],
+    ['name' => 'proposte', 'label' => 'Proposte, osservazioni, suggerimenti', 'type' => 'textarea',
+     'required' => false, 'public' => true,
+     'help' => 'Cosa è emerso sulla proposta di legge? Cosa manca, cosa cambieresti?'],
+    ['name' => 'foto', 'label' => 'Foto', 'type' => 'foto', 'required' => false, 'public' => true,
+     'help' => "Fino a 6 foto dell'iniziativa (JPG, PNG o WebP, massimo 10 MB ciascuna)"],
 ];

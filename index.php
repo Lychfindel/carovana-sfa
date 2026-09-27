@@ -1,6 +1,8 @@
 <?php
 require __DIR__ . '/inc/bootstrap.php';
 $body_class = 'page-home';
+$cdn_css = ['https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css'];
+$cdn_scripts = ['https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js'];
 $scripts = ['home.js'];
 require __DIR__ . '/inc/header.php';
 ?>
@@ -13,7 +15,6 @@ require __DIR__ . '/inc/header.php';
         <p class="intro-docs">Leggi la proposta: <a href="volantino.php">i 10 punti</a> · <a href="principi.php">principi e linee guida</a></p>
         <div class="intro-ctas">
           <a class="btn btn-small" href="proponi.php">+ Proponi un'iniziativa</a>
-          <a class="btn btn-small btn-ghost" href="contribuisci.php">Invia un contributo</a>
         </div>
       </div>
       <div class="legend">
@@ -34,5 +35,9 @@ require __DIR__ . '/inc/header.php';
   </aside>
   <div class="map" id="map" aria-label="Mappa delle iniziative"></div>
 </main>
-<script>window.API_URL = "api.php"; window.CONTRIBUISCI_URL = "contribuisci.php";</script>
+<script>
+  window.API_URL = "api.php";
+  window.REGIONI_URL = "<?= asset('italia-regioni.geojson') ?>";
+  window.MASCHERA_URL = "<?= asset('italia-maschera.geojson') ?>";
+</script>
 <?php require __DIR__ . '/inc/footer.php'; ?>

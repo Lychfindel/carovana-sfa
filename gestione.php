@@ -24,7 +24,7 @@ if (isset($_GET['esci'])) {
 
 // --- API usata dall'editor (admin.js) ---
 if (isset($_GET['api'])) {
-    $table = (string)$_GET['api'];
+    $table = get_str('api');
     if (!$is_admin) json_out(['error' => 'forbidden'], 403);
     if (!isset(tables()[$table])) json_out(['error' => 'not found'], 404);
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -41,17 +41,27 @@ if (isset($_GET['api'])) {
         foreach (tables()[$table]['columns'] as $col) {
             $c[$col] = (is_array($r) && isset($r[$col]) && is_scalar($r[$col])) ? (string)$r[$col] : '';
         }
-        if ($c['id'] === '') $c['id'] = new_id();
+        if (!preg_match(RE_ID, $c['id'])) $c['id'] = new_id();
         $c['approvata'] = is_true($c['approvata']) ? 'True' : 'False';
+        if (array_key_exists('foto', $c)) $c['foto'] = implode(';', foto_list($c['foto']));
         $clean[] = $c;
     }
-    with_lock(function () use ($table, $clean) { write_rows($table, $clean); });
+    with_lock(function () use ($table, $clean) {
+        if ($table === 'contributi') { // elimina dal disco le foto tolte o dei contributi eliminati
+            $keep = [];
+            foreach ($clean as $c) $keep[$c['id']] = foto_list($c['foto']);
+            foreach (read_rows($table) as $old) {
+                delete_photos($old['id'], isset($keep[$old['id']]) ? $keep[$old['id']] : []);
+            }
+        }
+        write_rows($table, $clean);
+    });
     json_out(['ok' => true, 'rows' => $clean]);
 }
 
 // --- Download CSV ---
 if (isset($_GET['csv'])) {
-    $table = (string)$_GET['csv'];
+    $table = get_str('csv');
     if (!$is_admin) { http_response_code(403); exit('Accesso negato'); }
     if (!isset(tables()[$table])) { http_response_code(404); exit; }
     $file = tables()[$table]['file'];
@@ -65,7 +75,7 @@ if (isset($_GET['csv'])) {
 // --- Login ---
 $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_admin) {
-    if (check_password(isset($_POST['password']) ? (string)$_POST['password'] : '')) {
+    if (check_password(isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '')) {
         session_regenerate_id(true);
         $_SESSION['admin'] = true;
         $_SESSION['csrf'] = bin2hex(random_bytes(16));
@@ -137,7 +147,8 @@ require __DIR__ . '/inc/header.php';
     schema: <?= json_encode($schema, $json) ?>,
     csrf: <?= json_encode($_SESSION['csrf'], $json) ?>,
     api: <?= json_encode($self . '?api=__T__', $json) ?>,
-    csv: <?= json_encode($self . '?csv=__T__', $json) ?>
+    csv: <?= json_encode($self . '?csv=__T__', $json) ?>,
+    foto: <?= json_encode('foto.php?c=__ID__&n=__N__', $json) ?>
   };
 </script>
 <?php require __DIR__ . '/inc/footer.php'; ?>

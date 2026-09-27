@@ -7,7 +7,11 @@ $t = tables();
 $contributi = [];
 foreach (read_rows('contributi') as $c) {
     if (is_true($c['approvata'])) {
-        $contributi[$c['iniziativa_id']][] = array_intersect_key($c, array_flip($t['contributi']['public']));
+        $item = array_intersect_key($c, array_flip($t['contributi']['public']));
+        $item['foto'] = array_map(function ($n) use ($c) {
+            return ['url' => foto_url($c['id'], $n), 'thumb' => foto_url($c['id'], $n, true)];
+        }, foto_list($c['foto']));
+        $contributi[$c['iniziativa_id']][] = $item;
     }
 }
 $out = [];
@@ -20,7 +24,4 @@ foreach (approved_iniziative() as $r) {
     $out[] = $item;
 }
 header('Cache-Control: no-cache');
-json_out([
-    'iniziative' => $out,
-    'contributi_generali' => isset($contributi['generale']) ? $contributi['generale'] : [],
-]);
+json_out(['iniziative' => $out]);

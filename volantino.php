@@ -10,7 +10,7 @@ require __DIR__ . '/inc/header.php';
     <h1>Un Programma nazionale per il diritto all'abitare</h1>
     <p class="lead">rimettendo al centro la giustizia sociale e ambientale.</p>
     <div class="doc-ctas">
-      <a class="btn" href="static/pdf/SFA-Volantino-2026.pdf" download>↓ Scarica il volantino (PDF)</a>
+      <a class="btn" href="<?= asset('pdf/SFA-Volantino-2026.pdf') ?>" download>↓ Scarica il volantino (PDF)</a>
       <a class="btn btn-ghost" href="principi.php">Leggi principi e linee guida</a>
     </div>
   </header>
@@ -60,8 +60,8 @@ require __DIR__ . '/inc/header.php';
 
   <aside class="doc-cta-box">
     <h2>Discutiamone nel tuo territorio</h2>
-    <p>La Carovana porta questi punti in giro per l'Italia: organizza una tappa o racconta cosa è emerso dalle vostre discussioni.</p>
-    <p><a class="btn btn-small" href="proponi.php">Proponi un'iniziativa</a> <a class="btn btn-small btn-ghost" href="contribuisci.php">Invia un contributo</a></p>
+    <p>La Carovana porta questi punti in giro per l'Italia: organizza una tappa nella tua città.</p>
+    <p><a class="btn btn-small" href="proponi.php">Proponi un'iniziativa</a></p>
   </aside>
 </main>
 <?php require __DIR__ . '/inc/footer.php'; ?>

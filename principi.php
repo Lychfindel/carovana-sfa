@@ -9,7 +9,7 @@ require __DIR__ . '/inc/header.php';
     <p class="eyebrow">Social Forum dell'Abitare · Giugno 2026</p>
     <h1>Principi e Linee guida per una Legge nazionale sulla casa degna e accessibile</h1>
     <div class="doc-ctas">
-      <a class="btn" href="static/pdf/SFA-Principi-e-Linee-guida-2026.pdf" download>↓ Scarica il documento (PDF)</a>
+      <a class="btn" href="<?= asset('pdf/SFA-Principi-e-Linee-guida-2026.pdf') ?>" download>↓ Scarica il documento (PDF)</a>
       <a class="btn btn-ghost" href="volantino.php">Il volantino in 10 punti</a>
     </div>
   </header>
@@ -37,7 +37,7 @@ require __DIR__ . '/inc/header.php';
           </ol>
         </li>
       </ol>
-      <a class="toc-dl" href="static/pdf/SFA-Principi-e-Linee-guida-2026.pdf" download>↓ Scarica il PDF</a>
+      <a class="toc-dl" href="<?= asset('pdf/SFA-Principi-e-Linee-guida-2026.pdf') ?>" download>↓ Scarica il PDF</a>
     </nav>
 
     <article class="prose">
@@ -106,7 +106,7 @@ require __DIR__ . '/inc/header.php';
       <aside class="doc-cta-box">
         <h2>Mettila alla prova nel tuo territorio</h2>
         <p>Discuti questi principi, aggiungi ciò che manca e restituiscici ciò che emerge.</p>
-        <p><a class="btn btn-small" href="proponi.php">Proponi un'iniziativa</a> <a class="btn btn-small btn-ghost" href="contribuisci.php">Invia un contributo</a></p>
+        <p><a class="btn btn-small" href="proponi.php">Proponi un'iniziativa</a></p>
       </aside>
     </article>
   </div>
