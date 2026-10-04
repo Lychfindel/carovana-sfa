@@ -443,26 +443,29 @@ def notify_new(table, row):
         send_mail(MAIL["admin"], f"[Carovana] Nuova proposta di iniziativa: {row['titolo']} ({row['citta']})",
                   "È arrivata una nuova proposta di iniziativa da approvare.\n\n"
                   f"{dettagli(table, row)}\n\nPer approvarla: {admin_link}", reply_to=row["email"])
-        send_mail(row["email"], "Abbiamo ricevuto la tua proposta di iniziativa",
+        send_mail(row["email"], "Abbiamo ricevuto la tua proposta di iniziativa per la Carovana",
                   "Ciao,\n\n"
-                  f"grazie per aver proposto l'iniziativa «{row['titolo']}» ({row['citta']}, {fmt_data(row['data'])}) "
+                  f"grazie per aver proposto l'iniziativa «{row['titolo']}», in porgramma a {row['citta']} il {fmt_data(row['data'])}), "
                   "alla Carovana per i diritti dell'abitare.\n\n"
-                  "La proposta è stata inviata correttamente: la controlleremo e, appena sarà approvata, "
-                  f"comparirà sulla mappa della Carovana ({site}). Ti scriveremo quando sarà online.\n\n"
-                  "Se vuoi correggere o aggiungere qualcosa, rispondi pure a questa email.",
+                  "Abbiamo ricevuto correttamente la tua proposta. La esamineremo e, una volta approvata, "
+                  f"sarà pubblicata sulla mappa della Carovana: {site}. \n\n"
+                  "Ti scriveremo non appena l'iniziativa sarà online. "
+                  "Ti invieremo anche il link cui accedere per condividere un'immagine dell'iniziative e il contributo per la proposta di legge dal basso.\n\n"
+                  "Nel frattempo, se vuoi correggere o aggiungere qualche informazione alla proposta, puoi semplicemente rispondere a questa email.",
                   reply_to=MAIL["admin"] or None)
     else:
         ini = find_row("iniziative", row["iniziativa_id"]) or {"titolo": "?", "citta": "?"}
         send_mail(MAIL["admin"], f"[Carovana] Nuovo contributo: {ini['titolo']} ({ini['citta']})",
                   "È arrivato un nuovo contributo da approvare.\n\n"
                   f"{dettagli(table, row)}\n\nPer approvarlo: {admin_link}", reply_to=row["email"])
-        send_mail(row["email"], "Abbiamo ricevuto il tuo contributo",
+        send_mail(row["email"], "Abbiamo ricevuto il tuo contributo per la Carovana",
                   "Ciao,\n\n"
-                  f"grazie per il contributo sull'iniziativa «{ini['titolo']}» ({ini['citta']}).\n\n"
-                  "Il contributo è stato inviato correttamente: lo leggeremo con attenzione e, appena sarà "
+                  f"grazie per il contributo sull'iniziativa «{ini['titolo']}», svoltasi a {ini['citta']} il {fmt_data(row['data'])}.\n\n"
+                  "Abbiamo ricevuto correttamente il tuo contributo: appena sarà "
                   "approvato, comparirà nella scheda dell'iniziativa sulla mappa della Carovana:\n"
                   f"{site}/#{row['iniziativa_id']}\n\n"
-                  "Se vuoi correggere o aggiungere qualcosa, rispondi pure a questa email.",
+                  "Ti scriveremo non appena il contributo sarà online. \n"
+                  "Nel frattempo, se vuoi correggere o aggiungere qualcosa, puoi semplicemente rispondere a questa email.",
                   reply_to=MAIL["admin"] or None)
 
 
@@ -471,7 +474,7 @@ def notify_approved(table, row):
     if table == "iniziative":
         return send_mail(row["email"], f"La tua iniziativa è sulla mappa della Carovana: {row['titolo']}",
                          "Ciao,\n\n"
-                         f"l'iniziativa «{row['titolo']}» ({row['citta']}, {fmt_data(row['data'])}) è stata approvata "
+                         f"l'iniziativa «{row['titolo']}», in programma a {row['citta']} il {fmt_data(row['data'])}, è stata approvata "
                          "ed è ora visibile a tutti sulla mappa della Carovana:\n"
                          f"{site}/#{row['id']}\n\n"
                          "Dopo l'iniziativa raccontaci com'è andata e cosa è emerso sulla proposta di legge: "
@@ -482,7 +485,7 @@ def notify_approved(table, row):
     ini = find_row("iniziative", row["iniziativa_id"]) or {"titolo": "?", "citta": "?"}
     return send_mail(row["email"], f"Il tuo contributo è stato pubblicato: {ini['titolo']}",
                      "Ciao,\n\n"
-                     f"il tuo contributo sull'iniziativa «{ini['titolo']}» ({ini['citta']}) è stato approvato "
+                     f"il tuo contributo sull'iniziativa «{ini['titolo']}», svoltasi a {ini['citta']} il {fmt_data(row['data'])}, è stato approvato "
                      "ed è ora visibile a tutti nella scheda dell'iniziativa sulla mappa della Carovana:\n"
                      f"{site}/#{row['iniziativa_id']}\n\n"
                      "Grazie per aver contribuito alla proposta di legge dal basso sull'abitare!",
