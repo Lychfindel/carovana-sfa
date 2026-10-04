@@ -33,6 +33,9 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 ADMIN_PATH = os.environ.get("ADMIN_PATH", "gestione")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cambiami")
 
+# Slogan della Carovana, mostrato nel menu, nel titolo della home e nei metadati delle pagine
+SLOGAN = os.environ.get("SLOGAN") or "Per vivere non per speculare"
+
 
 def _secret_key():
     if os.environ.get("SECRET_KEY"):
@@ -493,8 +496,8 @@ def notify_approved(table, row):
 
 
 @app.context_processor
-def inject_mail():
-    return {"mail_enabled": mail_enabled()}
+def inject_globals():
+    return {"mail_enabled": mail_enabled(), "slogan": SLOGAN}
 
 
 # ---------------------------------------------------------------------------

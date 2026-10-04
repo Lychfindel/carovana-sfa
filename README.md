@@ -32,6 +32,25 @@ licenza CC-BY). Le tappe sono unite in ordine di data dal percorso della Carovan
 (due tappe consecutive nella stessa città non vengono collegate) e i pallini vicini vengono
 raggruppati con Leaflet.markercluster.
 
+## Grafica
+
+Progetto grafico: proposta 3 di `PROPOSTA-CAROVANA.pdf` (pagine 8-10). Lo slogan
+(«Per vivere non per speculare») si cambia con la variabile `SLOGAN` in `.env`: compare nel
+menu, come titolo della home, nel titolo delle pagine e nella descrizione per i motori di ricerca.
+
+- Logo: la casetta e la scritta "Carovana" sono estratte in vettoriale dal PDF
+  (`templates/_casa.svg`, `templates/_wordmark.svg`, icona del sito `static/brand/casa.svg`).
+  Nel menu il corpo della casetta prende il colore principale.
+- Font: Instrument Sans (Google Fonts), al posto di Pacaembu che è a pagamento. Con i file
+  web di Pacaembu basta cambiare il link in `templates/base.html` e `--font` in `static/style.css`.
+- Colori: principale e secondario si scelgono tra i 4 della palette (azzurro `#33D1D1`,
+  verde `#38C64F`, giallo `#FFE400`, rosa `#DF6CE5`) col pulsante **Colori** in basso a destra;
+  la scelta resta salvata nel browser. Predefiniti: rosa + giallo.
+
+Quando la palette sarà decisa: imposta `--c1`/`--c2` (e le versioni `-soft`) in `:root` in
+`static/style.css` e `DEFAULT` in `static/colori.js`, poi togli dal fondo di
+`templates/base.html` il blocco `<div class="colori">` e lo script `colori.js`.
+
 ## Email
 
 Se è configurato un server SMTP (variabili `SMTP_*`, `MAIL_FROM`, `ADMIN_EMAIL`, `SITE_URL`
@@ -103,6 +122,7 @@ ADMIN_PASSWORD='una-password-robusta' .venv/bin/python app.py
 | `SECRET_KEY` | generata in `data/.secret_key` | chiave per le sessioni |
 | `CAROVANA_DATA_DIR` | `./data` (`/data` in Docker) | cartella dei CSV |
 | `COOKIE_SECURE` | vuoto | `1` se il sito è in HTTPS |
+| `SLOGAN` | `Per vivere non per speculare` | slogan nel menu e nella home |
 | `SITE_URL` | indirizzo della richiesta | indirizzo pubblico del sito, per i link nelle email |
 | `SMTP_HOST`, `SMTP_PORT` | vuoto, `587` | server SMTP (vuoto = niente email) |
 | `SMTP_SECURITY` | `starttls` (`ssl` se porta 465) | `starttls`, `ssl` oppure `none` |
