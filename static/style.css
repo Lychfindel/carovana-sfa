@@ -91,6 +91,9 @@ a:hover { text-decoration-color: var(--ink); }
 .home { display: grid; grid-template-columns: minmax(320px, 410px) 1fr; height: calc(100vh - var(--topbar)); height: calc(100dvh - var(--topbar)); }
 .sidebar { overflow-y: auto; border-right: var(--border); background: var(--paper); padding: 1.25rem; }
 .map { height: 100%; background: var(--c2-soft); } /* stesso colore della maschera fuori dall'Italia */
+/* ogni mappa ha un proprio livello: i controlli di Leaflet (z-index 1000) altrimenti
+   scorrono sopra la barra in alto, che ha lo stesso z-index */
+.map, .picker-map, .ed-map { isolation: isolate; }
 /* OSM ritagliata: meno satura, per non competere coi colori della Carovana */
 .tiles-osm-italia { filter: saturate(.35) contrast(1.02) brightness(1.04); }
 /* sagome disegnate sulla mappa (classi impostate in home.js) */
