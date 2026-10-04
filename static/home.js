@@ -37,8 +37,9 @@
   // per lasciare la mappa OSM completa (coste, porti, isole minori)
   const FADE = [9, 11];
   const k = () => Math.min(1, Math.max(0, (FADE[1] - map.getZoom()) / (FADE[1] - FADE[0])));
-  const regionStyle = () => ({ color: '#7c6ab5', weight: 0.8, opacity: 0.35 * k(), dashArray: '3 3', fillOpacity: 0 });
-  const maskStyle = () => ({ color: '#7c6ab5', weight: 1.5, opacity: 0.8 * k(), fillColor: '#e6e0f5', fillOpacity: k() });
+  // i colori vengono dal CSS (classi map-region / map-mask), così seguono la palette scelta
+  const regionStyle = () => ({ className: 'map-region', weight: 0.8, opacity: 0.3 * k(), dashArray: '3 3', fillOpacity: 0 });
+  const maskStyle = () => ({ className: 'map-mask', weight: 2, opacity: k(), fillOpacity: k() });
   const overlay = (url, name, style) => fetch(url).then((r) => r.json()).then((geo) => {
     const layer = L.geoJSON(geo, { pane: name, interactive: false, style }).addTo(map);
     map.on('zoomend', () => layer.setStyle(style));
@@ -74,8 +75,8 @@
       const done = b.past;
       L.polyline(arc([a.lat, a.lng], [b.lat, b.lng]), {
         pane: 'route', interactive: false, smoothFactor: 1,
-        color: done ? '#8a8494' : '#d7263d', weight: done ? 2 : 2.5,
-        opacity: done ? 0.6 : 0.85, dashArray: done ? '2 6' : '8 7', lineCap: 'round'
+        className: done ? 'route-past' : 'route-next', weight: done ? 2 : 2.5,
+        opacity: done ? 0.6 : 0.9, dashArray: done ? '2 6' : '8 7', lineCap: 'round'
       }).addTo(map);
     }
   }
@@ -225,8 +226,20 @@
       map.setView([i.lat, i.lng], 13, { animate: false });
       cluster.zoomToShowLayer(markers[id], highlight);
     } else if (fly) {
-      map.once('moveend', () => cluster.zoomToShowLayer(markers[id], highlight));
-      map.flyTo([i.lat, i.lng], Math.max(map.getZoom(), 11), { duration: 0.8 });
+      // flyTo può emettere un moveend già all'inizio (quando ferma il movimento precedente):
+      // si aspetta di essere arrivati davvero, altrimenti markercluster zooma mentre la mappa vola
+      // e i pallini spariscono
+      const target = Math.max(map.getZoom(), 11);
+      const arrived = () => {
+        if (Math.abs(map.getZoom() - target) > 0.01) return;
+        map.off('moveend', arrived);
+        // markercluster ricompone i gruppi con una sua animazione (~300 ms): uno zoom chiesto
+        // prima che finisca lascia la mappa senza pallini
+        setTimeout(() => cluster.zoomToShowLayer(markers[id], highlight), 350);
+      };
+      map.on('moveend', arrived);
+      setTimeout(() => map.off('moveend', arrived), 3000); // se chi guarda interrompe il volo
+      map.flyTo([i.lat, i.lng], target, { duration: 0.8 });
     } else {
       highlight();
     }

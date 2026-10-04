@@ -37,6 +37,26 @@ licenza CC-BY). Le tappe sono unite in ordine di data dal percorso della Carovan
 (due tappe consecutive nella stessa città non vengono collegate) e i pallini vicini vengono
 raggruppati con Leaflet.markercluster.
 
+## Grafica
+
+Progetto grafico: proposta 3 di `PROPOSTA-CAROVANA.pdf` (pagine 8-10). Lo slogan
+(«Per vivere non per speculare») si cambia con `SLOGAN` (in `.env` con Docker, oppure in
+`config.php`): compare nel menu, come titolo della home, nel titolo delle pagine e nella
+descrizione per i motori di ricerca.
+
+- Logo: la casetta e la scritta "Carovana" sono estratte in vettoriale dal PDF
+  (`inc/casa.svg`, `inc/wordmark.svg`, icona del sito `static/brand/casa.svg`).
+  Nel menu il corpo della casetta prende il colore principale.
+- Font: Instrument Sans (Google Fonts), al posto di Pacaembu che è a pagamento. Con i file
+  web di Pacaembu basta cambiare il link in `inc/header.php` e `--font` in `static/style.css`.
+- Colori: principale e secondario si scelgono tra i 4 della palette (azzurro `#33D1D1`,
+  verde `#38C64F`, giallo `#FFE400`, rosa `#DF6CE5`) col pulsante **Colori** in basso a destra;
+  la scelta resta salvata nel browser. Predefiniti: rosa + giallo.
+
+Quando la palette sarà decisa: imposta `--c1`/`--c2` (e le versioni `-soft`) in `:root` in
+`static/style.css` e `DEFAULT` in `static/colori.js`, poi togli da `inc/footer.php` il blocco
+`<div class="colori">` e lo script `colori.js`.
+
 ## Email
 
 Se è configurato un server SMTP (in `.env` con Docker, oppure in `config.php`: `SMTP_*`,
@@ -153,6 +173,7 @@ foto.php            foto dei contributi (solo se approvati)
 config.php          password e impostazioni (anche SMTP)
 inc/bootstrap.php   funzioni condivise (CSV con lock, validazione, foto, captcha, rendering campi)
 inc/forms.php       definizione delle domande dei form
+inc/casa.svg, inc/wordmark.svg   logo (inclusi nell'intestazione)
 inc/mail.php        email: client SMTP e testi delle notifiche
 inc/header.php, inc/footer.php
 static/             CSS, JavaScript (mappa, selettore posizione, foto, editor admin), GeoJSON, logo, PDF

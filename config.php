@@ -9,6 +9,9 @@
 define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD') !== false ? getenv('ADMIN_PASSWORD') : 'cambiami');
 define('ADMIN_PASSWORD_HASH', getenv('ADMIN_PASSWORD_HASH') !== false ? getenv('ADMIN_PASSWORD_HASH') : '');
 
+// Slogan della Carovana, mostrato nel menu, nel titolo della home e nei metadati delle pagine
+define('SLOGAN', getenv('SLOGAN') ?: 'Per vivere non per speculare');
+
 // Fuso orario per la data di invio delle risposte.
 const TIMEZONE = 'Europe/Rome';
 
