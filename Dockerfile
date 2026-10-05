@@ -24,5 +24,5 @@ USER app
 EXPOSE 8000
 VOLUME /data
 
-# un solo worker: la scrittura dei CSV è protetta da un lock interno al processo
+# i CSV sono protetti da un lock su file: si può aumentare -w se servisse più capacità
 CMD ["gunicorn", "-w", "1", "--threads", "4", "-b", "0.0.0.0:8000", "--access-logfile", "-", "app:app"]

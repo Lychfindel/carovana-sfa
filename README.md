@@ -136,8 +136,19 @@ ADMIN_PASSWORD='una-password-robusta' .venv/bin/python app.py
 ADMIN_PASSWORD='...' .venv/bin/gunicorn -w 1 --threads 4 -b 127.0.0.1:8000 app:app
 ```
 
-dietro un reverse proxy (nginx/Caddy) con HTTPS. Usa **un solo worker** (`-w 1`), perché
-la scrittura dei CSV è protetta da un lock interno al processo. Fai un backup periodico della cartella `data/`.
+dietro un reverse proxy (nginx/Caddy) con HTTPS. Fai un backup periodico della cartella `data/`.
+
+## Accessi contemporanei
+
+I CSV sono scritti sotto un lock su file (`data/.lock`), valido anche con più processi
+gunicorn, e sostituiti in modo atomico: invii simultanei di proposte e contributi non si
+sovrascrivono. La pagina di gestione salva solo le righe modificate, aggiunte o eliminate,
+applicandole ai dati attuali: le proposte arrivate mentre la pagina era aperta restano, e se
+due persone modificano la stessa riga vince la prima, mentre la seconda riceve un avviso e
+vede la versione aggiornata.
+
+Non modificare i CSV a mano (es. con Excel) mentre il sito è acceso: il lock vale solo per il
+sito. Per correzioni manuali usa la pagina di gestione, oppure ferma il container.
 
 ## Modificare le domande dei form
 

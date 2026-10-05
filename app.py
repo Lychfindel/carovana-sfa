@@ -4,7 +4,10 @@ Piccolo sito Flask: mappa delle iniziative, form "proponi", form "contribuisci"
 e pagina admin nascosta per approvare/modificare i dati salvati in CSV.
 """
 import csv
+import fcntl
+import hashlib
 import io
+import json
 import os
 import random
 import re
@@ -18,6 +21,7 @@ import warnings
 from datetime import datetime
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid, parseaddr
+from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
 
@@ -130,7 +134,15 @@ for t in TABLES.values():
 # ---------------------------------------------------------------------------
 # CSV
 # ---------------------------------------------------------------------------
-_lock = threading.Lock()
+@contextmanager
+def data_lock():
+    """Lock esclusivo sui dati, valido tra thread e tra processi (es. più worker gunicorn)."""
+    with open(DATA_DIR / ".lock", "a") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
 
 
 def read_rows(table):
@@ -145,7 +157,7 @@ def read_rows(table):
 
 def write_rows(table, rows):
     t = TABLES[table]
-    tmp = t["file"].with_suffix(".tmp")
+    tmp = t["file"].with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
     with open(tmp, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=t["columns"], extrasaction="ignore")
         w.writeheader()
@@ -154,8 +166,15 @@ def write_rows(table, rows):
     os.replace(tmp, t["file"])
 
 
+def row_version(table, row):
+    """Impronta del contenuto di una riga: serve alla gestione per accorgersi se nel frattempo
+    qualcun altro l'ha modificata."""
+    data = json.dumps([row.get(c, "") for c in TABLES[table]["columns"]], ensure_ascii=False)
+    return hashlib.sha1(data.encode("utf-8")).hexdigest()[:16]
+
+
 def append_row(table, row):
-    with _lock:
+    with data_lock():
         rows = read_rows(table)
         rows.append(row)
         write_rows(table, rows)
@@ -608,30 +627,72 @@ def admin_api(table):
     if table not in TABLES:
         abort(404)
     if request.method == "GET":
-        return jsonify(rows=read_rows(table))
+        return jsonify(rows=with_versions(table, read_rows(table)))
     if request.headers.get("X-CSRF") != session.get("csrf"):
         abort(403)
-    rows = request.get_json(force=True).get("rows", [])
-    clean = []
-    for r in rows:
-        r = {c: str(r.get(c, "")) for c in TABLES[table]["columns"]}
-        r["id"] = r["id"] if RE_ID.match(r["id"]) else uuid.uuid4().hex[:8]
+    payload = request.get_json(force=True, silent=True) or {}
+    if "rows" in payload:  # vecchia versione della pagina (salvava tutta la tabella)
+        return jsonify(error="La pagina di gestione è stata aggiornata: ricaricala e ripeti le modifiche."), 409
+    columns = TABLES[table]["columns"]
+
+    def clean(r):
+        r = {c: str(r.get(c, "")) for c in columns}
         r["approvata"] = "True" if is_true(r["approvata"]) else "False"
         if "foto" in r:
             r["foto"] = ";".join(foto_list(r["foto"]))
-        clean.append(r)
-    with _lock:
-        old_rows = {r["id"]: r for r in read_rows(table)}
-        if table == "contributi":  # elimina dal disco le foto tolte o dei contributi eliminati
-            keep = {r["id"]: foto_list(r["foto"]) for r in clean}
-            for old in old_rows.values():
-                delete_photos(old["id"], keep.get(old["id"], ()))
-        write_rows(table, clean)
+        return r
+
+    conflicts, approved, foto_cleanup = [], [], []
+    with data_lock():
+        rows = read_rows(table)
+        index = {r["id"]: i for i, r in enumerate(rows)}
+        # righe modificate: si applicano solo se nessuno le ha cambiate dopo il caricamento della pagina
+        for ch in payload.get("changes", []):
+            rid = str(ch.get("id", ""))
+            i = index.get(rid)
+            if i is None:
+                conflicts.append({"id": rid, "motivo": "eliminata"})
+                continue
+            old = rows[i]
+            if row_version(table, old) != ch.get("_v"):
+                conflicts.append({"id": rid, "motivo": "modificata"})
+                continue
+            new = clean(ch.get("row") or {})
+            new["id"], new["inviato_il"] = old["id"], old["inviato_il"]  # non modificabili
+            rows[i] = new
+            if "foto" in new:
+                foto_cleanup.append((rid, foto_list(new["foto"])))
+            if is_true(new["approvata"]) and not is_true(old["approvata"]):
+                approved.append(new)
+        # righe eliminate: si eliminano solo se nessuno le ha cambiate nel frattempo
+        deleted = set()
+        for d in payload.get("deleted", []):
+            rid = str(d.get("id", ""))
+            i = index.get(rid)
+            if i is None:
+                continue  # già eliminata da qualcun altro
+            if row_version(table, rows[i]) != d.get("_v"):
+                conflicts.append({"id": rid, "motivo": "modificata"})
+                continue
+            deleted.add(rid)
+            foto_cleanup.append((rid, ()))
+        rows = [r for r in rows if r["id"] not in deleted]
+        # righe nuove create dalla gestione
+        for r in payload.get("added", []):
+            new = clean(r)
+            new["id"] = uuid.uuid4().hex[:8]
+            rows.append(new)
+        write_rows(table, rows)
+        if table == "contributi":  # elimina dal disco solo le foto tolte o dei contributi eliminati
+            for rid, keep in foto_cleanup:
+                delete_photos(rid, keep)
     # avvisa chi ha inviato le righe appena approvate (da non approvata ad approvata)
-    notificati = sum(1 for r in clean
-                     if is_true(r["approvata"]) and r["id"] in old_rows
-                     and not is_true(old_rows[r["id"]]["approvata"]) and notify_approved(table, r))
-    return jsonify(ok=True, rows=clean, notificati=notificati)
+    notificati = sum(1 for r in approved if notify_approved(table, r))
+    return jsonify(ok=True, rows=with_versions(table, rows), conflicts=conflicts, notificati=notificati)
+
+
+def with_versions(table, rows):
+    return [dict(r, _v=row_version(table, r)) for r in rows]
 
 
 @app.route(f"/{ADMIN_PATH}/csv/<table>")
