@@ -10,6 +10,17 @@
   const LABELS = { id: 'ID', inviato_il: 'Inviato il', approvata: 'Approvata', lat: 'Latitudine', lng: 'Longitudine', iniziativa_id: 'Iniziativa' };
   const data = { iniziative: [], contributi: [] };
   const dirty = { iniziative: false, contributi: false };
+  // com'erano le righe quando sono state caricate dal server: al salvataggio si inviano solo
+  // le differenze, così non si cancellano le proposte arrivate nel frattempo né le modifiche
+  // fatte da altre persone in gestione
+  const snap = { iniziative: {}, contributi: {} };
+  const rowJson = (t, r) => JSON.stringify(A.schema[t].columns.map((c) => r[c] || ''));
+  const cols = (t, r) => Object.fromEntries(A.schema[t].columns.map((c) => [c, r[c] || '']));
+  function setRows(t, rows) {
+    data[t] = rows;
+    snap[t] = {};
+    rows.forEach((r) => { snap[t][r.id] = { v: r._v, json: rowJson(t, r), row: Object.assign({}, r) }; });
+  }
   let table = 'iniziative', open = null;
 
   const ok = (r) => String(r.approvata).toLowerCase() === 'true';
@@ -34,8 +45,8 @@
     });
   }
 
-  function summary(r) {
-    if (table === 'iniziative') return { title: r.titolo || '(senza titolo)', meta: [r.data.replace('T', ' '), r.citta, r.chi].filter(Boolean).join(' · ') };
+  function summary(r, t = table) {
+    if (t === 'iniziative') return { title: r.titolo || '(senza titolo)', meta: [(r.data || '').replace('T', ' '), r.citta, r.chi].filter(Boolean).join(' · ') };
     const nf = fotoList(r.foto).length;
     return { title: (r.proposte || r.info || (nf ? 'Solo foto' : '(vuoto)')).slice(0, 110), meta: [iniName(r.iniziativa_id), r.email, nf ? nf + ' foto' : ''].filter(Boolean).join(' · ') };
   }
@@ -44,7 +55,7 @@
     const box = $('rows'); box.innerHTML = '';
     const st = $('f-state').value, q = $('f-q').value.toLowerCase();
     const rows = data[table].filter((r) => (st === 'all' || (st === 'ok') === ok(r)) &&
-      (!q || Object.values(r).join(' ').toLowerCase().includes(q)));
+      (!q || Object.entries(r).filter(([k]) => k[0] !== '_').map(([, v]) => v).join(' ').toLowerCase().includes(q)));
     if (!rows.length) box.append(el('p', 'empty', 'Nessuna riga.'));
     rows.slice().reverse().forEach((r) => {
       const card = el('div', 'row-card' + (ok(r) ? ' is-ok' : ''));
@@ -166,28 +177,46 @@
   async function load(t) {
     const r = await fetch(A.api.replace('__T__', t), { credentials: 'same-origin' });
     if (r.status === 403) { location.reload(); return; }
-    data[t] = (await r.json()).rows;
+    setRows(t, (await r.json()).rows);
   }
 
   async function save() {
     let notificati = 0;
+    const problemi = [];
     $('save').disabled = true; status('Salvataggio…');
     try {
       for (const t of ['iniziative', 'contributi']) {
         if (!dirty[t]) continue;
+        const ids = new Set(data[t].map((r) => r.id));
+        const changes = data[t].filter((r) => r._v && snap[t][r.id] && rowJson(t, r) !== snap[t][r.id].json)
+          .map((r) => ({ id: r.id, _v: r._v, row: cols(t, r) }));
+        const added = data[t].filter((r) => !r._v).map((r) => cols(t, r));
+        const deleted = Object.keys(snap[t]).filter((id) => !ids.has(id)).map((id) => ({ id, _v: snap[t][id].v }));
+        // titoli per spiegare eventuali conflitti (dalla versione modificata o da quella caricata)
+        const titoli = {};
+        data[t].concat(Object.values(snap[t]).map((x) => x.row)).forEach((r) => {
+          if (!titoli[r.id]) titoli[r.id] = summary(r, t).title;
+        });
         const r = await fetch(A.api.replace('__T__', t), {
           method: 'POST', credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'X-CSRF': A.csrf },
-          body: JSON.stringify({ rows: data[t] })
+          body: JSON.stringify({ changes, added, deleted })
         });
-        if (!r.ok) throw new Error(r.status);
-        const res = await r.json();
-        data[t] = res.rows; dirty[t] = false; notificati += res.notificati || 0;
+        const res = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(res.error || r.status);
+        setRows(t, res.rows); dirty[t] = false; notificati += res.notificati || 0;
+        (res.conflicts || []).forEach((c) => problemi.push('«' + (titoli[c.id] || c.id) + '» ' +
+          (c.motivo === 'eliminata' ? 'è stata eliminata' : 'è stata modificata') + ' da qualcun altro'));
       }
       open = null; render();
       const avviso = notificati === 1 ? ' · inviata 1 email di approvazione'
         : notificati > 1 ? ' · inviate ' + notificati + ' email di approvazione' : '';
-      status('Salvato ✓' + avviso);
+      if (problemi.length) {
+        status('Salvato, tranne ' + (problemi.length === 1 ? 'una modifica' : problemi.length + ' modifiche') + ': ' +
+          problemi.join('; ') + ' nel frattempo. Ora vedi la versione aggiornata: se serve, ripeti la modifica.' + avviso, true);
+      } else {
+        status('Salvato ✓' + avviso);
+      }
     } catch (e) {
       $('save').disabled = false;
       status('Errore nel salvataggio (' + e.message + '). Se la sessione è scaduta ricarica la pagina.', true);

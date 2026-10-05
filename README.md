@@ -149,6 +149,17 @@ In alternativa puoi spostare la cartella dei dati fuori dalla root del sito e in
 
 Fai un backup periodico della cartella `data/`, foto comprese.
 
+## Accessi contemporanei
+
+I CSV sono scritti sotto un lock su file (`data/.lock`, con `flock`) e sostituiti in modo
+atomico: invii simultanei di proposte e contributi non si sovrascrivono. La pagina di gestione
+salva solo le righe modificate, aggiunte o eliminate, applicandole ai dati attuali: le proposte
+arrivate mentre la pagina era aperta restano, e se due persone modificano la stessa riga vince
+la prima, mentre la seconda riceve un avviso e vede la versione aggiornata.
+
+Non modificare i CSV a mano (es. con Excel o via FTP) mentre il sito è online: il lock vale
+solo per il sito. Per correzioni manuali usa la pagina di gestione.
+
 ## Provarlo in locale
 
 ```bash

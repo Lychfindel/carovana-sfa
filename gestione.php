@@ -28,46 +28,72 @@ if (isset($_GET['api'])) {
     if (!$is_admin) json_out(['error' => 'forbidden'], 403);
     if (!isset(tables()[$table])) json_out(['error' => 'not found'], 404);
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        json_out(['rows' => read_rows($table)]);
+        json_out(['rows' => with_versions($table, read_rows($table))]);
     }
     $csrf = isset($_SERVER['HTTP_X_CSRF']) ? $_SERVER['HTTP_X_CSRF'] : '';
     if (empty($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf)) json_out(['error' => 'forbidden'], 403);
     $body = json_decode(file_get_contents('php://input'), true);
-    $rows = (is_array($body) && isset($body['rows']) && is_array($body['rows'])) ? $body['rows'] : null;
-    if ($rows === null) json_out(['error' => 'bad request'], 400);
-    $clean = [];
-    foreach ($rows as $r) {
+    if (!is_array($body)) json_out(['error' => 'bad request'], 400);
+    if (array_key_exists('rows', $body)) { // vecchia versione della pagina (salvava tutta la tabella)
+        json_out(['error' => 'La pagina di gestione è stata aggiornata: ricaricala e ripeti le modifiche.'], 409);
+    }
+    $list = function ($k) use ($body) { return isset($body[$k]) && is_array($body[$k]) ? $body[$k] : []; };
+    $str = function ($a, $k) { return is_array($a) && isset($a[$k]) && is_scalar($a[$k]) ? (string)$a[$k] : ''; };
+    $columns = tables()[$table]['columns'];
+    $clean = function ($r) use ($columns, $str) {
         $c = [];
-        foreach (tables()[$table]['columns'] as $col) {
-            $c[$col] = (is_array($r) && isset($r[$col]) && is_scalar($r[$col])) ? (string)$r[$col] : '';
-        }
-        if (!preg_match(RE_ID, $c['id'])) $c['id'] = new_id();
+        foreach ($columns as $col) $c[$col] = $str($r, $col);
         $c['approvata'] = is_true($c['approvata']) ? 'True' : 'False';
         if (array_key_exists('foto', $c)) $c['foto'] = implode(';', foto_list($c['foto']));
-        $clean[] = $c;
-    }
-    $old_rows = with_lock(function () use ($table, $clean) {
-        $old_rows = [];
-        foreach (read_rows($table) as $r) $old_rows[$r['id']] = $r;
-        if ($table === 'contributi') { // elimina dal disco le foto tolte o dei contributi eliminati
-            $keep = [];
-            foreach ($clean as $c) $keep[$c['id']] = foto_list($c['foto']);
-            foreach ($old_rows as $old) {
-                delete_photos($old['id'], isset($keep[$old['id']]) ? $keep[$old['id']] : []);
-            }
+        return $c;
+    };
+    $res = with_lock(function () use ($table, $list, $str, $clean) {
+        $rows = read_rows($table);
+        $index = [];
+        foreach ($rows as $i => $r) $index[$r['id']] = $i;
+        $conflicts = $approved = $foto_cleanup = [];
+        // righe modificate: si applicano solo se nessuno le ha cambiate dopo il caricamento della pagina
+        foreach ($list('changes') as $ch) {
+            $rid = $str($ch, 'id');
+            if (!isset($index[$rid])) { $conflicts[] = ['id' => $rid, 'motivo' => 'eliminata']; continue; }
+            $old = $rows[$index[$rid]];
+            if (!hash_equals(row_version($table, $old), $str($ch, '_v'))) { $conflicts[] = ['id' => $rid, 'motivo' => 'modificata']; continue; }
+            $new = $clean(isset($ch['row']) ? $ch['row'] : []);
+            $new['id'] = $old['id'];
+            $new['inviato_il'] = $old['inviato_il']; // non modificabili
+            $rows[$index[$rid]] = $new;
+            if (array_key_exists('foto', $new)) $foto_cleanup[] = [$rid, foto_list($new['foto'])];
+            if (is_true($new['approvata']) && !is_true($old['approvata'])) $approved[] = $new;
         }
-        write_rows($table, $clean);
-        return $old_rows;
+        // righe eliminate: si eliminano solo se nessuno le ha cambiate nel frattempo
+        $deleted = [];
+        foreach ($list('deleted') as $d) {
+            $rid = $str($d, 'id');
+            if (!isset($index[$rid])) continue; // già eliminata da qualcun altro
+            if (!hash_equals(row_version($table, $rows[$index[$rid]]), $str($d, '_v'))) { $conflicts[] = ['id' => $rid, 'motivo' => 'modificata']; continue; }
+            $deleted[$rid] = true;
+            $foto_cleanup[] = [$rid, []];
+        }
+        $rows = array_values(array_filter($rows, function ($r) use ($deleted) { return !isset($deleted[$r['id']]); }));
+        // righe nuove create dalla gestione
+        foreach ($list('added') as $r) {
+            $new = $clean($r);
+            $new['id'] = new_id();
+            $rows[] = $new;
+        }
+        write_rows($table, $rows);
+        if ($table === 'contributi') { // elimina dal disco solo le foto tolte o dei contributi eliminati
+            foreach ($foto_cleanup as $fc) delete_photos($fc[0], $fc[1]);
+        }
+        return [$rows, $conflicts, $approved];
     });
+    list($rows, $conflicts, $approved) = $res;
     // avvisa chi ha inviato le righe appena approvate (da non approvata ad approvata)
     $notificati = 0;
-    foreach ($clean as $c) {
-        if (is_true($c['approvata']) && isset($old_rows[$c['id']]) && !is_true($old_rows[$c['id']]['approvata'])
-                && notify_approved($table, $c)) {
-            $notificati++;
-        }
+    foreach ($approved as $r) {
+        if (notify_approved($table, $r)) $notificati++;
     }
-    json_out(['ok' => true, 'rows' => $clean, 'notificati' => $notificati]);
+    json_out(['ok' => true, 'rows' => with_versions($table, $rows), 'conflicts' => $conflicts, 'notificati' => $notificati]);
 }
 
 // --- Download CSV ---

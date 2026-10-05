@@ -134,7 +134,7 @@ function read_rows($table)
 function write_rows($table, $rows)
 {
     $t = tables()[$table];
-    $tmp = $t['file'] . '.tmp';
+    $tmp = $t['file'] . '.' . getmypid() . '.' . bin2hex(random_bytes(4)) . '.tmp';
     $h = fopen($tmp, 'w');
     fputcsv($h, $t['columns'], ',', '"', '');
     foreach ($rows as $r) {
@@ -146,6 +146,22 @@ function write_rows($table, $rows)
     }
     fclose($h);
     rename($tmp, $t['file']);
+}
+
+/** Impronta del contenuto di una riga: serve alla gestione per accorgersi se nel frattempo
+ *  qualcun altro l'ha modificata. */
+function row_version($table, $row)
+{
+    $vals = [];
+    foreach (tables()[$table]['columns'] as $c) {
+        $vals[] = isset($row[$c]) ? (string)$row[$c] : '';
+    }
+    return substr(sha1(json_encode($vals, JSON_UNESCAPED_UNICODE)), 0, 16);
+}
+
+function with_versions($table, $rows)
+{
+    return array_map(function ($r) use ($table) { return $r + ['_v' => row_version($table, $r)]; }, $rows);
 }
 
 function append_row($table, $row)
