@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . '/inc/bootstrap.php';
-$title = 'Principi e linee guida';
+$title = 'Proposta di legge';
 $body_class = 'page-doc';
 require __DIR__ . '/inc/header.php';
 ?>
@@ -10,7 +10,7 @@ require __DIR__ . '/inc/header.php';
     <h1>Principi e Linee guida per una Legge nazionale sulla casa degna e accessibile</h1>
     <div class="doc-ctas">
       <a class="btn" href="<?= asset('pdf/SFA-Principi-e-Linee-guida-2026.pdf') ?>" download>↓ Scarica il documento (PDF)</a>
-      <a class="btn btn-ghost" href="volantino.php">Il volantino in 10 punti</a>
+      <a class="btn btn-ghost" href="volantino.php">Principi e linee guida</a>
     </div>
   </header>
 
@@ -106,7 +106,7 @@ require __DIR__ . '/inc/header.php';
       <aside class="doc-cta-box">
         <h2>Mettila alla prova nel tuo territorio</h2>
         <p>Discuti questi principi, aggiungi ciò che manca e restituiscici ciò che emerge.</p>
-        <p><a class="btn btn-small" href="proponi.php">Proponi un'iniziativa</a></p>
+        <p><a class="btn btn-small" href="proponi.php">Proponi una tappa</a></p>
       </aside>
     </article>
   </div>

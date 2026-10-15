@@ -13,9 +13,9 @@ require __DIR__ . '/inc/header.php';
         <p class="eyebrow">La Carovana per i diritti dell'abitare</p>
         <h1 class="slogan"><?= e(SLOGAN) ?></h1>
         <p>Iniziative, dibattiti e vertenze in tutta Italia per discutere, mettere alla prova e arricchire la <strong>proposta di legge dal basso</strong> del Social Forum dell'Abitare.</p>
-        <p class="intro-docs">Leggi la proposta: <a href="volantino.php">i 10 punti</a> · <a href="principi.php">principi e linee guida</a></p>
+        <p class="intro-docs">Leggi la <a href="principi.php">proposta di legge</a> e i <a href="volantino.php">principi e linee guida</a></p>
         <div class="intro-ctas">
-          <a class="btn btn-small" href="proponi.php">+ Proponi un'iniziativa</a>
+          <a class="btn btn-small" href="proponi.php">+ Proponi una tappa</a>
         </div>
       </div>
       <div class="legend">

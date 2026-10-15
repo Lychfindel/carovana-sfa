@@ -1,8 +1,8 @@
 /* ==========================================================================
    Carovana – grafica della proposta 3 (lo slogan si imposta con SLOGAN in .env)
    Progetto grafico: proposta 3 (casetta con le gambe, linee nere, campiture piene).
-   Colori: principale (--c1) e secondario (--c2) scelti tra i 4 della palette;
-   si cambiano col selettore "Colori" (static/colori.js) tramite data-c1 / data-c2 su <html>.
+   Colori: principale rosa (--c1) e secondario giallo (--c2), dalla palette del progetto;
+   per cambiarli basta modificare le due righe --c1 / --c2 in :root.
    ========================================================================== */
 :root {
   /* palette del progetto (pagina 9) e versioni chiare al 25% */
@@ -70,6 +70,9 @@ a:hover { text-decoration-color: var(--ink); }
 .topbar nav a { text-decoration: none; color: var(--ink); font-weight: 500; font-size: .95rem; padding: .4rem .8rem; border: 2px solid transparent; border-radius: 999px; white-space: nowrap; }
 .topbar nav a:hover { border-color: var(--ink); }
 .topbar nav a[aria-current="page"] { background: var(--c2); border-color: var(--ink); }
+/* "Proponi una tappa" evidenziato come pulsante */
+.topbar nav a.nav-cta { background: var(--c1); border-color: var(--ink); font-weight: 600; }
+.topbar nav a.nav-cta:hover, .topbar nav a.nav-cta[aria-current="page"] { background: var(--ink); color: #fff; }
 
 /* ---------- buttons ---------- */
 .btn {
@@ -300,25 +303,6 @@ input, textarea, select { font: inherit; color: var(--text); }
 .intro-docs { font-size: .92rem !important; }
 .intro-docs a { font-weight: 600; }
 
-/* ---------- selettore dei colori (temporaneo) ---------- */
-.colori { position: fixed; right: 1rem; bottom: 1rem; z-index: 2000; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: .5rem; }
-.colori-toggle { display: flex; align-items: center; gap: .5rem; font: inherit; font-weight: 600; font-size: .9rem; background: var(--paper); color: var(--ink); border: var(--border); border-radius: 999px; padding: .4rem .85rem .4rem .45rem; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
-.colori-toggle:hover { background: var(--paper-2); }
-.colori-toggle[aria-expanded="true"] { box-shadow: none; transform: translate(3px, 3px); }
-.colori-swatch { display: flex; }
-.colori-swatch i { display: block; width: 18px; height: 18px; border: 2px solid var(--ink); border-radius: 50%; }
-.colori-swatch .s1 { background: var(--c1); }
-.colori-swatch .s2 { background: var(--c2); margin-left: -7px; }
-.colori-panel { background: var(--paper); border: var(--border); padding: .75rem .9rem; box-shadow: 4px 4px 0 var(--ink); }
-.colori-panel fieldset { border: 0; margin: 0; padding: 0; }
-.colori-panel fieldset + fieldset { margin-top: .6rem; }
-.colori-panel legend { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 0; margin-bottom: .3rem; }
-.colori-row { display: flex; gap: .45rem; }
-/* nella home sta sopra i crediti della mappa */
-.page-home .colori { bottom: 2.1rem; }
-.colori-btn { width: 34px; height: 34px; border-radius: 50%; border: var(--border); background: var(--sw); cursor: pointer; padding: 0; }
-.colori-btn[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink); }
-
 @media (max-width: 1250px) { .brand-slogan { display: none; } }
 @media (max-width: 800px) {
   .doc-grid { grid-template-columns: 1fr; }
@@ -328,7 +312,7 @@ input, textarea, select { font: inherit; color: var(--text); }
   .doc-hero { padding: 1.5rem 1.25rem; }
 }
 @media print {
-  .topbar, .doc-ctas, .toc, .doc-cta-box, .colori { display: none; }
+  .topbar, .doc-ctas, .toc, .doc-cta-box { display: none; }
   .page-doc, .prose, .points li { background: #fff; }
 }
 
@@ -346,5 +330,4 @@ input, textarea, select { font: inherit; color: var(--text); }
   .intro h1.slogan { font-size: 2.1rem; }
   .form-intro, .form, .done { padding: 1.25rem; }
   .form-intro h1 { font-size: 1.7rem; }
-  .colori { right: .6rem; bottom: .6rem; }
 }

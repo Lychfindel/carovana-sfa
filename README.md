@@ -7,9 +7,9 @@ dipendenze da installare: funziona su un normale hosting condiviso con PHP ≥ 7
 | Pagina | File |
 |---|---|
 | Mappa delle iniziative (home) | `index.php` |
-| Principi e linee guida (con download PDF) | `principi.php` |
-| Volantino in 10 punti (con download PDF) | `volantino.php` |
-| Proponi un'iniziativa | `proponi.php` |
+| Proposta di legge (testo completo, con download PDF) | `principi.php` |
+| Principi e linee guida (i 10 punti del volantino, con download PDF) | `volantino.php` |
+| Proponi una tappa | `proponi.php` |
 | Contribuisci alla proposta (nascosta: nessun link sul sito, si invia per email agli organizzatori) | `contribuisci.php` (anche `contribuisci.php?iniziativa=<id>`) |
 | Gestione (nascosta, con password) | `gestione.php` |
 | Dati pubblici per la mappa (JSON) | `api.php` |
@@ -49,13 +49,9 @@ descrizione per i motori di ricerca.
   Nel menu il corpo della casetta prende il colore principale.
 - Font: Instrument Sans (Google Fonts), al posto di Pacaembu che è a pagamento. Con i file
   web di Pacaembu basta cambiare il link in `inc/header.php` e `--font` in `static/style.css`.
-- Colori: principale e secondario si scelgono tra i 4 della palette (azzurro `#33D1D1`,
-  verde `#38C64F`, giallo `#FFE400`, rosa `#DF6CE5`) col pulsante **Colori** in basso a destra;
-  la scelta resta salvata nel browser. Predefiniti: rosa + giallo.
-
-Quando la palette sarà decisa: imposta `--c1`/`--c2` (e le versioni `-soft`) in `:root` in
-`static/style.css` e `DEFAULT` in `static/colori.js`, poi togli da `inc/footer.php` il blocco
-`<div class="colori">` e lo script `colori.js`.
+- Colori: principale **rosa** `#DF6CE5` e secondario **giallo** `#FFE400`, dalla palette del
+  progetto (che comprende anche azzurro `#33D1D1` e verde `#38C64F`). Per cambiarli basta
+  modificare le righe `--c1` / `--c2` in `:root` in `static/style.css`.
 
 ## Email
 
