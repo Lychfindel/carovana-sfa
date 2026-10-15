@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
-{% block title %}Volantino – 10 punti per il diritto all'abitare{% endblock %}
+{% block title %}Principi e linee guida{% endblock %}
 {% block body_class %}page-doc{% endblock %}
 {% block content %}
 <main class="doc-wrap">
   <header class="doc-hero">
-    <p class="eyebrow">Social Forum dell'Abitare · Volantino</p>
+    <p class="eyebrow">Social Forum dell'Abitare · Principi e linee guida</p>
     <h1>Un Programma nazionale per il diritto all'abitare</h1>
     <p class="lead">rimettendo al centro la giustizia sociale e ambientale.</p>
     <div class="doc-ctas">
       <a class="btn" href="{{ url_for('static', filename='pdf/SFA-Volantino-2026.pdf') }}" download>↓ Scarica il volantino (PDF)</a>
-      <a class="btn btn-ghost" href="{{ url_for('principi') }}">Leggi principi e linee guida</a>
+      <a class="btn btn-ghost" href="{{ url_for('principi') }}">Leggi la proposta di legge</a>
     </div>
   </header>
 
@@ -59,7 +59,7 @@
   <aside class="doc-cta-box">
     <h2>Discutiamone nel tuo territorio</h2>
     <p>La Carovana porta questi punti in giro per l'Italia: organizza una tappa nella tua città.</p>
-    <p><a class="btn btn-small" href="{{ url_for('proponi') }}">Proponi un'iniziativa</a></p>
+    <p><a class="btn btn-small" href="{{ url_for('proponi') }}">Proponi una tappa</a></p>
   </aside>
 </main>
 {% endblock %}

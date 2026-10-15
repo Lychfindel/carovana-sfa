@@ -72,7 +72,7 @@ FORM_INIZIATIVA = [
     {"name": "email", "label": "Email", "type": "email", "required": True, "public": False,
      "help": "Un'email che possiamo usare per contattarti",
      "placeholder": "osservatorio@ocio-venezia.it"},
-    {"name": "data", "label": "Data", "type": "datetime-local", "required": True, "public": True,
+    {"name": "data", "label": "Data e ora", "type": "datetime-local", "required": True, "public": True,
      "help": "Quando si terrà l'iniziativa"},
     {"name": "citta", "label": "Città", "type": "text", "required": True, "public": True,
      "help": "La città in cui vorrai organizzare l'iniziativa", "placeholder": "Venezia"},

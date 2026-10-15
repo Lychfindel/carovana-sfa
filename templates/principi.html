@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Principi e linee guida{% endblock %}
+{% block title %}Proposta di legge{% endblock %}
 {% block body_class %}page-doc{% endblock %}
 {% block content %}
 <main class="doc-wrap doc-long">
@@ -8,7 +8,7 @@
     <h1>Principi e Linee guida per una Legge nazionale sulla casa degna e accessibile</h1>
     <div class="doc-ctas">
       <a class="btn" href="{{ url_for('static', filename='pdf/SFA-Principi-e-Linee-guida-2026.pdf') }}" download>↓ Scarica il documento (PDF)</a>
-      <a class="btn btn-ghost" href="{{ url_for('volantino') }}">Il volantino in 10 punti</a>
+      <a class="btn btn-ghost" href="{{ url_for('volantino') }}">Principi e linee guida</a>
     </div>
   </header>
 
@@ -104,7 +104,7 @@
       <aside class="doc-cta-box">
         <h2>Mettila alla prova nel tuo territorio</h2>
         <p>Discuti questi principi, aggiungi ciò che manca e restituiscici ciò che emerge.</p>
-        <p><a class="btn btn-small" href="{{ url_for('proponi') }}">Proponi un'iniziativa</a></p>
+        <p><a class="btn btn-small" href="{{ url_for('proponi') }}">Proponi una tappa</a></p>
       </aside>
     </article>
   </div>

@@ -5,14 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ slogan }}{% endblock %} – Carovana</title>
   <meta name="description" content="La Carovana per i diritti dell'abitare del Social Forum dell'Abitare: iniziative in tutta Italia per discutere la proposta di legge dal basso sull'abitare. {{ slogan }}.">
-  <script>
-    // colori scelti col selettore (vedi colori.js): applicati prima del disegno della pagina
-    try {
-      var c = JSON.parse(localStorage.getItem('carovana-colori') || '{}');
-      if (c.c1) document.documentElement.dataset.c1 = c.c1;
-      if (c.c2) document.documentElement.dataset.c2 = c.c2;
-    } catch (e) {}
-  </script>
   <link rel="icon" href="{{ url_for('static', filename='brand/casa.svg') }}" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,32 +22,15 @@
     </a>
     <nav>
       <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>Mappa</a>
-      <a href="{{ url_for('principi') }}" {% if request.endpoint == 'principi' %}aria-current="page"{% endif %}>Principi e linee guida</a>
-      <a href="{{ url_for('volantino') }}" {% if request.endpoint == 'volantino' %}aria-current="page"{% endif %}>Volantino</a>
-      <a href="{{ url_for('proponi') }}" {% if request.endpoint == 'proponi' %}aria-current="page"{% endif %}>Proponi un'iniziativa</a>
+      <a href="{{ url_for('principi') }}" {% if request.endpoint == 'principi' %}aria-current="page"{% endif %}>Proposta di legge</a>
+      <a href="{{ url_for('volantino') }}" {% if request.endpoint == 'volantino' %}aria-current="page"{% endif %}>Principi e linee guida</a>
+      <a href="{{ url_for('proponi') }}" class="nav-cta" {% if request.endpoint == 'proponi' %}aria-current="page"{% endif %}>Proponi una tappa</a>
     </nav>
   </header>
   {% block content %}{% endblock %}
 
-  <!-- Selettore dei colori: temporaneo, finché non viene scelta la palette definitiva -->
-  <div class="colori" id="colori">
-    <button type="button" class="colori-toggle" aria-expanded="false" aria-controls="colori-panel">
-      <span class="colori-swatch" aria-hidden="true"><i class="s1"></i><i class="s2"></i></span> Colori
-    </button>
-    <div class="colori-panel" id="colori-panel" hidden>
-      <fieldset>
-        <legend>Principale</legend>
-        <div class="colori-row" data-slot="c1"></div>
-      </fieldset>
-      <fieldset>
-        <legend>Secondario</legend>
-        <div class="colori-row" data-slot="c2"></div>
-      </fieldset>
-    </div>
-  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <script src="{{ url_for('static', filename='colori.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
