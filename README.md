@@ -5,8 +5,8 @@ Sito della Carovana del Social Forum dell'Abitare.
 | Pagina | Indirizzo |
 |---|---|
 | Mappa delle iniziative (home) | `/` |
-| Proposta di legge (testo completo, con download PDF) | `/principi` |
-| Principi e linee guida (i 10 punti del volantino, con download PDF) | `/volantino` |
+| Proposta di legge (testo completo, con download PDF) | `/proposta` |
+| Principi e linee guida (i 10 punti del volantino, con download PDF) | `/principi` (il vecchio `/volantino` vi reindirizza) |
 | Proponi una tappa | `/proponi` |
 | Contribuisci alla proposta (nascosta: nessun link sul sito, si invia per email agli organizzatori) | `/contribuisci` (anche `/contribuisci?iniziativa=<id>`) |
 | Gestione (nascosta, con password) | `/gestione` (configurabile) |

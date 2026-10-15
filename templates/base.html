@@ -22,8 +22,8 @@
     </a>
     <nav>
       <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>Mappa</a>
-      <a href="{{ url_for('principi') }}" {% if request.endpoint == 'principi' %}aria-current="page"{% endif %}>Proposta di legge</a>
-      <a href="{{ url_for('volantino') }}" {% if request.endpoint == 'volantino' %}aria-current="page"{% endif %}>Principi e linee guida</a>
+      <a href="{{ url_for('proposta') }}" {% if request.endpoint == 'proposta' %}aria-current="page"{% endif %}>Proposta di legge</a>
+      <a href="{{ url_for('principi') }}" {% if request.endpoint == 'principi' %}aria-current="page"{% endif %}>Principi e linee guida</a>
       <a href="{{ url_for('proponi') }}" class="nav-cta" {% if request.endpoint == 'proponi' %}aria-current="page"{% endif %}>Proponi una tappa</a>
     </nav>
   </header>

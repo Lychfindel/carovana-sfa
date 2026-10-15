@@ -527,6 +527,11 @@ def home():
     return render_template("home.html")
 
 
+@app.route("/proposta")
+def proposta():
+    return render_template("proposta.html")
+
+
 @app.route("/principi")
 def principi():
     return render_template("principi.html")
@@ -534,7 +539,8 @@ def principi():
 
 @app.route("/volantino")
 def volantino():
-    return render_template("volantino.html")
+    # vecchio indirizzo della pagina dei principi e linee guida
+    return redirect(url_for("principi"), code=301)
 
 
 @app.route("/proponi", methods=["GET", "POST"])
