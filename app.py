@@ -379,6 +379,9 @@ MAIL = {
     "admin": [a.strip() for a in os.environ.get("ADMIN_EMAIL", "").split(",") if a.strip()],
 }
 MAIL_FIRMA = "Social Forum dell'Abitare – Carovana per i diritti dell'abitare"
+# Cartella condivisa con i materiali per chi organizza una tappa (link nella mail di approvazione)
+MATERIALI_URL = os.environ.get("MATERIALI_URL", "").strip()
+MAIL_LOGO = BASE_DIR / "static" / "brand" / "logo-email.png"
 
 
 def mail_enabled():
@@ -408,19 +411,59 @@ def _deliver(msg):
         app.logger.exception("Invio email non riuscito a %s: %s", msg["To"], msg["Subject"])
 
 
-def send_mail(to, subject, body, reply_to=None):
-    """Invia in background, così un server SMTP lento non rallenta la risposta."""
+# Ogni email è una lista di blocchi, da cui si generano la versione HTML (templates/email.html)
+# e quella solo testo: così restano sempre allineate.
+def paragrafo(testo):
+    return {"tipo": "p", "testo": testo}
+
+
+def pulsante(testo, url):
+    return {"tipo": "pulsante", "testo": testo, "url": url}
+
+
+def riquadro(titolo, testo, link, url):
+    return {"tipo": "riquadro", "titolo": titolo, "testo": testo, "link": link, "url": url}
+
+
+def mail_text(blocchi):
+    parti = []
+    for b in blocchi:
+        if b["tipo"] == "p":
+            parti.append(b["testo"])
+        elif b["tipo"] == "pulsante":
+            parti.append(f"{b['testo']}: {b['url']}")
+        elif b["tipo"] == "dettagli":
+            parti.append("\n".join(f"{label}\n{link or valore}\n" if "\n" in (link or valore) or len(link or valore) > 60
+                                   else f"{label}: {link or valore}" for label, valore, link in b["righe"]))
+        elif b["tipo"] == "riquadro":
+            parti.append(f"{b['titolo'].upper()}\n{b['testo']}\n{b['url']}")
+    return "\n\n".join(parti) + "\n\n-- \n" + MAIL_FIRMA + "\n"
+
+
+def send_mail(to, subject, titolo, blocchi, reply_to=None):
+    """Prepara l'email (testo + HTML con il logo) e la invia in background, così un server SMTP
+    lento non rallenta la risposta."""
     to = [a for a in ([to] if isinstance(to, str) else to) if a and "@" in a]
     if not mail_enabled() or not to:
         return False
+    domain = parseaddr(MAIL["from"])[1].split("@")[-1] or None
     msg = EmailMessage()
     msg["From"] = MAIL["from"]
     msg["To"] = ", ".join(to)
     msg["Subject"] = " ".join(subject.split())  # niente a capo negli header
-    msg["Message-ID"] = make_msgid(domain=parseaddr(MAIL["from"])[1].split("@")[-1] or None)
+    msg["Message-ID"] = make_msgid(domain=domain)
     if reply_to:
         msg["Reply-To"] = ", ".join([reply_to] if isinstance(reply_to, str) else reply_to)
-    msg.set_content(body + "\n\n-- \n" + MAIL_FIRMA + "\n")
+    msg.set_content(mail_text(blocchi))
+    site = site_url()
+    logo_cid = make_msgid(domain=domain)
+    anteprima = next((b["testo"] for b in blocchi if b["tipo"] == "p" and b["testo"] != "Ciao,"), "")
+    html = render_template("email.html", m={"titolo": titolo, "blocchi": blocchi, "anteprima": anteprima},
+                           logo_cid=logo_cid[1:-1], slogan=SLOGAN, firma=MAIL_FIRMA,
+                           site=site, site_label=site.split("://", 1)[-1])
+    msg.add_alternative(html, subtype="html")
+    if MAIL_LOGO.exists():  # logo allegato all'email: si vede senza "caricare le immagini esterne"
+        msg.get_payload()[1].add_related(MAIL_LOGO.read_bytes(), "image", "png", cid=logo_cid)
     threading.Thread(target=_deliver, args=(msg,), daemon=True).start()
     return True
 
@@ -434,11 +477,13 @@ def fmt_data(v):
 
 
 def dettagli(table, row):
-    """Tutti i campi del modulo, per la mail all'admin."""
+    """Tutti i campi del modulo, per la mail all'admin: righe (etichetta, valore, link)."""
     righe = []
     for f in TABLES[table]["form"]:
+        link = None
         if f["type"] == "map":
-            v = f"https://www.openstreetmap.org/?mlat={row['lat']}&mlon={row['lng']}#map=16/{row['lat']}/{row['lng']}"
+            v = "Apri sulla mappa"
+            link = f"https://www.openstreetmap.org/?mlat={row['lat']}&mlon={row['lng']}#map=16/{row['lat']}/{row['lng']}"
         elif f["type"] == "foto":
             v = f"{len(foto_list(row.get('foto')))} foto"
         elif f["type"] == "iniziativa":
@@ -446,12 +491,12 @@ def dettagli(table, row):
             v = f"{ini['titolo']} ({ini['citta']}, {fmt_data(ini['data'])})" if ini else row[f["name"]]
         elif f["type"] == "datetime-local":
             v = fmt_data(row[f["name"]])
+        elif f["type"] == "url" and row.get(f["name"]):
+            v = link = row[f["name"]]
         else:
             v = row.get(f["name"], "")
-        v = v or "—"
-        label = f["label"].rstrip("?")
-        righe.append(f"{label}\n{v}\n" if "\n" in v or len(v) > 60 else f"{label}: {v}")
-    return "\n".join(righe)
+        righe.append((f["label"].rstrip("?"), v or "—", link))
+    return {"tipo": "dettagli", "righe": righe}
 
 
 def find_row(table, rid):
@@ -461,57 +506,78 @@ def find_row(table, rid):
 def notify_new(table, row):
     site = site_url()
     admin_link = f"{site}/{ADMIN_PATH}"
+    reply_admin = MAIL["admin"] or None
     if table == "iniziative":
         send_mail(MAIL["admin"], f"[Carovana] Nuova proposta di iniziativa: {row['titolo']} ({row['citta']})",
-                  "È arrivata una nuova proposta di iniziativa da approvare.\n\n"
-                  f"{dettagli(table, row)}\n\nPer approvarla: {admin_link}", reply_to=row["email"])
+                  "Nuova proposta di iniziativa", [
+                      paragrafo("È arrivata una nuova proposta di iniziativa da approvare."),
+                      dettagli(table, row),
+                      pulsante("Apri la gestione", admin_link),
+                  ], reply_to=row["email"])
         send_mail(row["email"], "Abbiamo ricevuto la tua proposta di iniziativa per la Carovana",
-                  "Ciao,\n\n"
-                  f"grazie per aver proposto l'iniziativa «{row['titolo']}», in programma a {row['citta']} il {fmt_data(row['data'])}, "
-                  "alla Carovana per i diritti dell'abitare.\n\n"
-                  "Abbiamo ricevuto correttamente la tua proposta. La esamineremo e, una volta approvata, "
-                  f"sarà pubblicata sulla mappa della Carovana: {site}\n\n"
-                  "Ti scriveremo non appena l'iniziativa sarà online. "
-                  "Ti invieremo anche il link a cui accedere per condividere le immagini dell'iniziativa e il contributo per la proposta di legge dal basso.\n\n"
-                  "Nel frattempo, se vuoi correggere o aggiungere qualche informazione alla proposta, puoi semplicemente rispondere a questa email.",
-                  reply_to=MAIL["admin"] or None)
-    else:
-        ini = find_row("iniziative", row["iniziativa_id"]) or {"titolo": "?", "citta": "?", "data": ""}
-        send_mail(MAIL["admin"], f"[Carovana] Nuovo contributo: {ini['titolo']} ({ini['citta']})",
-                  "È arrivato un nuovo contributo da approvare.\n\n"
-                  f"{dettagli(table, row)}\n\nPer approvarlo: {admin_link}", reply_to=row["email"])
-        send_mail(row["email"], "Abbiamo ricevuto il tuo contributo per la Carovana",
-                  "Ciao,\n\n"
-                  f"grazie per il contributo sull'iniziativa «{ini['titolo']}», svoltasi a {ini['citta']} il {fmt_data(ini['data'])}.\n\n"
-                  "Abbiamo ricevuto correttamente il tuo contributo: appena sarà "
-                  "approvato, comparirà nella scheda dell'iniziativa sulla mappa della Carovana:\n"
-                  f"{site}/#{row['iniziativa_id']}\n\n"
-                  "Ti scriveremo non appena il contributo sarà online.\n"
-                  "Nel frattempo, se vuoi correggere o aggiungere qualcosa, puoi semplicemente rispondere a questa email.",
-                  reply_to=MAIL["admin"] or None)
+                  "Abbiamo ricevuto la tua proposta", [
+                      paragrafo("Ciao,"),
+                      paragrafo(f"grazie per aver proposto l'iniziativa «{row['titolo']}», in programma a {row['citta']} "
+                        f"il {fmt_data(row['data'])}, alla Carovana per i diritti dell'abitare."),
+                      paragrafo("Abbiamo ricevuto correttamente la tua proposta. La esamineremo e, una volta approvata, "
+                        "sarà pubblicata sulla mappa della Carovana."),
+                      pulsante("Vai alla mappa della Carovana", site),
+                      paragrafo("Ti scriveremo non appena l'iniziativa sarà online. Ti invieremo anche il link a cui accedere "
+                        "per condividere le immagini dell'iniziativa e il contributo per la proposta di legge dal basso."),
+                      paragrafo("Nel frattempo, se vuoi correggere o aggiungere qualche informazione alla proposta, "
+                        "puoi semplicemente rispondere a questa email."),
+                  ], reply_to=reply_admin)
+        return
+    # un contributo non ha una data propria: si usa quella dell'iniziativa
+    ini = find_row("iniziative", row["iniziativa_id"]) or {"titolo": "?", "citta": "?", "data": ""}
+    send_mail(MAIL["admin"], f"[Carovana] Nuovo contributo: {ini['titolo']} ({ini['citta']})",
+              "Nuovo contributo", [
+                  paragrafo("È arrivato un nuovo contributo da approvare."),
+                  dettagli(table, row),
+                  pulsante("Apri la gestione", admin_link),
+              ], reply_to=row["email"])
+    send_mail(row["email"], "Abbiamo ricevuto il tuo contributo per la Carovana",
+              "Abbiamo ricevuto il tuo contributo", [
+                  paragrafo("Ciao,"),
+                  paragrafo(f"grazie per il contributo sull'iniziativa «{ini['titolo']}», svoltasi a {ini['citta']} "
+                    f"il {fmt_data(ini['data'])}."),
+                  paragrafo("Abbiamo ricevuto correttamente il tuo contributo: appena sarà approvato, comparirà nella "
+                    "scheda dell'iniziativa sulla mappa della Carovana."),
+                  pulsante("Vedi l'iniziativa sulla mappa", f"{site}/#{row['iniziativa_id']}"),
+                  paragrafo("Ti scriveremo non appena il contributo sarà online."),
+                  paragrafo("Nel frattempo, se vuoi correggere o aggiungere qualcosa, puoi semplicemente rispondere a questa email."),
+              ], reply_to=reply_admin)
 
 
 def notify_approved(table, row):
     site = site_url()
+    reply_admin = MAIL["admin"] or None
     if table == "iniziative":
+        blocchi = [
+            paragrafo("Ciao,"),
+            paragrafo(f"l'iniziativa «{row['titolo']}», in programma a {row['citta']} il {fmt_data(row['data'])}, "
+              "è stata approvata ed è ora visibile a tutti sulla mappa della Carovana."),
+            pulsante("Vedi l'iniziativa sulla mappa", f"{site}/#{row['id']}"),
+            paragrafo("Dopo l'iniziativa raccontaci com'è andata e cosa è emerso sulla proposta di legge: proposte, "
+              "osservazioni, suggerimenti e qualche foto. Puoi farlo da questa pagina, usando questa stessa email:"),
+            pulsante("Invia il tuo contributo", f"{site}/contribuisci?iniziativa={row['id']}"),
+        ]
+        if MATERIALI_URL:
+            blocchi.append(riquadro("Materiali utili",
+                                    "Nella cartella condivisa trovi i materiali utili per organizzare e promuovere la tappa.",
+                                    "Apri la cartella dei materiali", MATERIALI_URL))
         return send_mail(row["email"], f"La tua iniziativa è sulla mappa della Carovana: {row['titolo']}",
-                         "Ciao,\n\n"
-                         f"l'iniziativa «{row['titolo']}», in programma a {row['citta']} il {fmt_data(row['data'])}, è stata approvata "
-                         "ed è ora visibile a tutti sulla mappa della Carovana:\n"
-                         f"{site}/#{row['id']}\n\n"
-                         "Dopo l'iniziativa raccontaci com'è andata e cosa è emerso sulla proposta di legge: "
-                         "proposte, osservazioni, suggerimenti e qualche foto. Puoi farlo da questa pagina, "
-                         "usando questa stessa email:\n"
-                         f"{site}/contribuisci?iniziativa={row['id']}",
-                         reply_to=MAIL["admin"] or None)
+                         "La tua iniziativa è sulla mappa!", blocchi, reply_to=reply_admin)
     ini = find_row("iniziative", row["iniziativa_id"]) or {"titolo": "?", "citta": "?", "data": ""}
     return send_mail(row["email"], f"Il tuo contributo è stato pubblicato: {ini['titolo']}",
-                     "Ciao,\n\n"
-                     f"il tuo contributo sull'iniziativa «{ini['titolo']}», svoltasi a {ini['citta']} il {fmt_data(ini['data'])}, è stato approvato "
-                     "ed è ora visibile a tutti nella scheda dell'iniziativa sulla mappa della Carovana:\n"
-                     f"{site}/#{row['iniziativa_id']}\n\n"
-                     "Grazie per aver contribuito alla proposta di legge dal basso sull'abitare!",
-                     reply_to=MAIL["admin"] or None)
+                     "Il tuo contributo è stato pubblicato", [
+                         paragrafo("Ciao,"),
+                         paragrafo(f"il tuo contributo sull'iniziativa «{ini['titolo']}», svoltasi a {ini['citta']} il "
+                           f"{fmt_data(ini['data'])}, è stato approvato ed è ora visibile a tutti nella scheda "
+                           "dell'iniziativa sulla mappa della Carovana."),
+                         pulsante("Vedi il contributo sulla mappa", f"{site}/#{row['iniziativa_id']}"),
+                         paragrafo("Grazie per aver contribuito alla proposta di legge dal basso sull'abitare!"),
+                     ], reply_to=reply_admin)
 
 
 @app.context_processor

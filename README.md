@@ -58,8 +58,14 @@ in `.env`), il sito invia:
 | | chi l'ha proposta | conferma: sarà sulla mappa appena approvata |
 | Arriva un contributo | `ADMIN_EMAIL` | tutti i dati e il link alla gestione |
 | | l'email indicata nel modulo | conferma: sarà pubblicato appena approvato |
-| Un'iniziativa viene approvata | chi l'ha proposta | link alla sua scheda sulla mappa e link personale a `/contribuisci?iniziativa=<id>` |
+| Un'iniziativa viene approvata | chi l'ha proposta | link alla sua scheda sulla mappa, link personale a `/contribuisci?iniziativa=<id>` e riquadro "Materiali utili" con il link a `MATERIALI_URL` (se impostato) |
 | Un contributo viene approvato | l'email del contributo | link alla scheda dell'iniziativa |
+
+Le email sono in HTML con la grafica della Carovana (fascia rosa con il logo, pulsanti),
+più una versione solo testo per i programmi di posta che non mostrano l'HTML. I testi sono
+in `app.py` (funzioni `notify_new` e `notify_approved`), la grafica in `templates/email.html`;
+il logo è `static/brand/logo-email.png`, allegato all'email così si vede senza caricare
+immagini esterne.
 
 L'avviso di approvazione parte quando, nella gestione, una riga passa da non approvata ad
 approvata e si salva (la gestione mostra quante email sono state inviate). Le email partono in
@@ -119,6 +125,7 @@ ADMIN_PASSWORD='una-password-robusta' .venv/bin/python app.py
 | `CAROVANA_DATA_DIR` | `./data` (`/data` in Docker) | cartella dei CSV |
 | `COOKIE_SECURE` | vuoto | `1` se il sito è in HTTPS |
 | `SLOGAN` | `Per vivere non per speculare` | slogan nel menu e nella home |
+| `MATERIALI_URL` | vuoto | link alla cartella condivisa dei materiali, nella mail di approvazione |
 | `SITE_URL` | indirizzo della richiesta | indirizzo pubblico del sito, per i link nelle email |
 | `SMTP_HOST`, `SMTP_PORT` | vuoto, `587` | server SMTP (vuoto = niente email) |
 | `SMTP_SECURITY` | `starttls` (`ssl` se porta 465) | `starttls`, `ssl` oppure `none` |
