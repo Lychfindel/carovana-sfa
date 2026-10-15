@@ -7,8 +7,8 @@ dipendenze da installare: funziona su un normale hosting condiviso con PHP ≥ 7
 | Pagina | File |
 |---|---|
 | Mappa delle iniziative (home) | `index.php` |
-| Proposta di legge (testo completo, con download PDF) | `principi.php` |
-| Principi e linee guida (i 10 punti del volantino, con download PDF) | `volantino.php` |
+| Proposta di legge (testo completo, con download PDF) | `proposta.php` |
+| Principi e linee guida (i 10 punti del volantino, con download PDF) | `principi.php` (il vecchio `volantino.php` vi reindirizza) |
 | Proponi una tappa | `proponi.php` |
 | Contribuisci alla proposta (nascosta: nessun link sul sito, si invia per email agli organizzatori) | `contribuisci.php` (anche `contribuisci.php?iniziativa=<id>`) |
 | Gestione (nascosta, con password) | `gestione.php` |
@@ -174,7 +174,8 @@ Le domande sono definite in `inc/forms.php` nelle liste `FORM_INIZIATIVA` e
 ## Struttura
 
 ```
-index.php, principi.php, volantino.php, proponi.php, contribuisci.php, gestione.php
+index.php, proposta.php, principi.php, proponi.php, contribuisci.php, gestione.php
+volantino.php       vecchio indirizzo: reindirizza a principi.php
 api.php             dati pubblici per la mappa
 foto.php            foto dei contributi (solo se approvati)
 config.php          password e impostazioni (anche SMTP)

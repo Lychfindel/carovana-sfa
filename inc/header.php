@@ -4,8 +4,8 @@ defined('CAROVANA') || exit;
 $page = basename($_SERVER['SCRIPT_NAME']);
 $nav = [
     'index.php' => 'Mappa',
-    'principi.php' => 'Proposta di legge',
-    'volantino.php' => 'Principi e linee guida',
+    'proposta.php' => 'Proposta di legge',
+    'principi.php' => 'Principi e linee guida',
     'proponi.php' => 'Proponi una tappa',
 ];
 ?><!DOCTYPE html>
