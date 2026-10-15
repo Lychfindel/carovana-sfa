@@ -8,7 +8,7 @@ dipendenze da installare: funziona su un normale hosting condiviso con PHP ≥ 7
 |---|---|
 | Mappa delle iniziative (home) | `index.php` |
 | Proposta di legge (testo completo, con download PDF) | `proposta.php` |
-| Principi e linee guida (i 10 punti del volantino, con download PDF) | `principi.php` (il vecchio `volantino.php` vi reindirizza) |
+| Principi e linee guida (i 10 punti del volantino, con download PDF) | `principi.php` |
 | Proponi una tappa | `proponi.php` |
 | Contribuisci alla proposta (nascosta: nessun link sul sito, si invia per email agli organizzatori) | `contribuisci.php` (anche `contribuisci.php?iniziativa=<id>`) |
 | Gestione (nascosta, con password) | `gestione.php` |
@@ -64,8 +64,14 @@ Se è configurato un server SMTP (in `.env` con Docker, oppure in `config.php`: 
 | | chi l'ha proposta | conferma: sarà sulla mappa appena approvata |
 | Arriva un contributo | `ADMIN_EMAIL` | tutti i dati e il link alla gestione |
 | | l'email indicata nel modulo | conferma: sarà pubblicato appena approvato |
-| Un'iniziativa viene approvata | chi l'ha proposta | link alla sua scheda sulla mappa e link personale a `contribuisci.php?iniziativa=<id>` |
+| Un'iniziativa viene approvata | chi l'ha proposta | link alla sua scheda sulla mappa, link personale a `contribuisci.php?iniziativa=<id>` e riquadro "Materiali utili" con il link a `MATERIALI_URL` (se impostato) |
 | Un contributo viene approvato | l'email del contributo | link alla scheda dell'iniziativa |
+
+Le email sono in HTML con la grafica della Carovana (fascia rosa con il logo, pulsanti),
+più una versione solo testo per i programmi di posta che non mostrano l'HTML. I testi sono in
+`inc/mail.php` (funzioni `notify_new` e `notify_approved`), la grafica in `inc/email.php`; il
+logo è `static/brand/logo-email.png`, allegato all'email così si vede senza caricare immagini
+esterne. Il link alla cartella dei materiali si imposta con `MATERIALI_URL` (`.env` o `config.php`).
 
 L'avviso di approvazione parte quando, nella gestione, una riga passa da non approvata ad
 approvata e si salva (la gestione mostra quante email sono state inviate). Senza `SMTP_HOST`
@@ -175,7 +181,6 @@ Le domande sono definite in `inc/forms.php` nelle liste `FORM_INIZIATIVA` e
 
 ```
 index.php, proposta.php, principi.php, proponi.php, contribuisci.php, gestione.php
-volantino.php       vecchio indirizzo: reindirizza a principi.php
 api.php             dati pubblici per la mappa
 foto.php            foto dei contributi (solo se approvati)
 config.php          password e impostazioni (anche SMTP)
@@ -183,6 +188,7 @@ inc/bootstrap.php   funzioni condivise (CSV con lock, validazione, foto, captcha
 inc/forms.php       definizione delle domande dei form
 inc/casa.svg, inc/wordmark.svg   logo (inclusi nell'intestazione)
 inc/mail.php        email: client SMTP e testi delle notifiche
+inc/email.php       grafica HTML delle email
 inc/header.php, inc/footer.php
 static/             CSS, JavaScript (mappa, selettore posizione, foto, editor admin), GeoJSON, logo, PDF
 data/               CSV e foto (non accessibile dal web)

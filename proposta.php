@@ -6,7 +6,7 @@ require __DIR__ . '/inc/header.php';
 ?>
 <main class="doc-wrap doc-long">
   <header class="doc-hero">
-    <p class="eyebrow">Social Forum dell'Abitare · Giugno 2026</p>
+    <p class="eyebrow">Social Forum dell'Abitare · Proposta di legge</p>
     <h1>Proposta per una Legge nazionale sulla casa degna e accessibile</h1>
     <div class="doc-ctas">
       <a class="btn" href="<?= asset('pdf/SFA-Principi-e-Linee-guida-2026.pdf') ?>" download>↓ Scarica il documento (PDF)</a>

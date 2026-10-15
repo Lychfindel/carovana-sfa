@@ -62,8 +62,61 @@ function site_url()
     return ($https ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $dir;
 }
 
-/** Mette in coda un'email; viene inviata a fine richiesta (vedi mail_flush). */
-function send_mail($to, $subject, $body, $reply_to = [])
+// Ogni email è una lista di blocchi, da cui si generano la versione HTML (inc/email.php)
+// e quella solo testo: così restano sempre allineate.
+function paragrafo($testo)
+{
+    return ['tipo' => 'p', 'testo' => $testo];
+}
+
+function pulsante($testo, $url)
+{
+    return ['tipo' => 'pulsante', 'testo' => $testo, 'url' => $url];
+}
+
+function riquadro($titolo, $testo, $link, $url)
+{
+    return ['tipo' => 'riquadro', 'titolo' => $titolo, 'testo' => $testo, 'link' => $link, 'url' => $url];
+}
+
+function mail_text($blocchi)
+{
+    $parti = [];
+    foreach ($blocchi as $b) {
+        if ($b['tipo'] === 'p') {
+            $parti[] = $b['testo'];
+        } elseif ($b['tipo'] === 'pulsante') {
+            $parti[] = "{$b['testo']}: {$b['url']}";
+        } elseif ($b['tipo'] === 'dettagli') {
+            $righe = [];
+            foreach ($b['righe'] as $r) {
+                $v = $r[2] ?: $r[1];
+                $righe[] = (strpos($v, "\n") !== false || mb_strlen_safe($v) > 60) ? "{$r[0]}\n$v\n" : "{$r[0]}: $v";
+            }
+            $parti[] = implode("\n", $righe);
+        } elseif ($b['tipo'] === 'riquadro') {
+            $parti[] = (function_exists('mb_strtoupper') ? mb_strtoupper($b['titolo'], 'UTF-8') : strtoupper($b['titolo']))
+                . "\n{$b['testo']}\n{$b['url']}";
+        }
+    }
+    return implode("\n\n", $parti) . "\n\n-- \n" . MAIL_FIRMA . "\n";
+}
+
+function mail_html($titolo, $blocchi, $logo_cid)
+{
+    $site = site_url();
+    $site_label = preg_replace('#^[a-z]+://#i', '', $site);
+    $anteprima = '';
+    foreach ($blocchi as $b) {
+        if ($b['tipo'] === 'p' && $b['testo'] !== 'Ciao,') { $anteprima = $b['testo']; break; }
+    }
+    ob_start();
+    include __DIR__ . '/email.php';
+    return ob_get_clean();
+}
+
+/** Prepara l'email (testo + HTML con il logo) e la mette in coda: viene inviata a fine richiesta (vedi mail_flush). */
+function send_mail($to, $subject, $titolo, $blocchi, $reply_to = [])
 {
     $to = array_values(array_filter((array)$to, 'mail_valid'));
     if (!mail_enabled() || !$to) {
@@ -76,8 +129,12 @@ function send_mail($to, $subject, $body, $reply_to = [])
             apache_setenv('no-gzip', '1'); // con la compressione Apache aspetterebbe la fine dell'invio
         }
     }
-    $GLOBALS['mail_queue'][] = [$to, $subject, $body . "\n\n-- \n" . MAIL_FIRMA . "\n",
-                                array_values(array_filter((array)$reply_to, 'mail_valid'))];
+    $logo_cid = bin2hex(random_bytes(12)) . '@carovana';
+    $GLOBALS['mail_queue'][] = [
+        'to' => $to, 'subject' => $subject, 'text' => mail_text($blocchi),
+        'html' => mail_html($titolo, $blocchi, $logo_cid), 'logo_cid' => $logo_cid,
+        'reply_to' => array_values(array_filter((array)$reply_to, 'mail_valid')),
+    ];
     return true;
 }
 
@@ -104,9 +161,9 @@ function mail_flush()
     }
     foreach ($GLOBALS['mail_queue'] as $i => $m) {
         try {
-            smtp_send($m[0], $m[1], $m[2], $m[3]);
+            smtp_send($m);
         } catch (Exception $e) { // un problema con la posta non deve mai bloccare il sito
-            error_log('Invio email non riuscito a ' . implode(', ', $m[0]) . ': ' . $m[1] . ' - ' . $e->getMessage());
+            error_log('Invio email non riuscito a ' . implode(', ', $m['to']) . ': ' . $m['subject'] . ' - ' . $e->getMessage());
             if (strpos($e->getMessage(), 'connessione') === 0) { // server irraggiungibile: inutile riprovare subito
                 error_log('Server SMTP non raggiungibile: ' . (count($GLOBALS['mail_queue']) - $i - 1) . ' altre email non inviate');
                 break;
@@ -117,8 +174,33 @@ function mail_flush()
 }
 register_shutdown_function('mail_flush');
 
-function smtp_send($to, $subject, $body, $reply_to)
+/** Corpo MIME: testo semplice + HTML con il logo allegato (multipart/alternative con related). */
+function mime_body($m)
 {
+    $b64 = function ($data) { return rtrim(chunk_split(base64_encode($data), 76, "\r\n")); };
+    $crlf = function ($t) { return preg_replace("/\r?\n/", "\r\n", $t); };
+    $alt = 'alt-' . bin2hex(random_bytes(8));
+    $rel = 'rel-' . bin2hex(random_bytes(8));
+    $html_part = "Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . $b64($crlf($m['html']));
+    $logo = __DIR__ . '/../static/brand/logo-email.png';
+    if (is_file($logo)) { // logo allegato all'email: si vede senza "caricare le immagini esterne"
+        $html_part = "Content-Type: multipart/related; boundary=\"$rel\"\r\n\r\n"
+            . "--$rel\r\n" . $html_part . "\r\n"
+            . "--$rel\r\nContent-Type: image/png; name=\"carovana.png\"\r\nContent-Transfer-Encoding: base64\r\n"
+            . "Content-ID: <{$m['logo_cid']}>\r\nContent-Disposition: inline; filename=\"carovana.png\"\r\n\r\n"
+            . $b64(file_get_contents($logo)) . "\r\n--$rel--";
+    }
+    $body = "--$alt\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+        . $b64($crlf($m['text'])) . "\r\n"
+        . "--$alt\r\n" . $html_part . "\r\n--$alt--";
+    return ["Content-Type: multipart/alternative; boundary=\"$alt\"", $body];
+}
+
+function smtp_send($m)
+{
+    $to = $m['to'];
+    $subject = $m['subject'];
+    $reply_to = $m['reply_to'];
     list($from_name, $from_addr) = mail_parse_from(MAIL_FROM);
     $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => SMTP_HOST]]);
     $remote = (SMTP_SECURITY === 'ssl' ? 'ssl://' : 'tcp://') . SMTP_HOST . ':' . SMTP_PORT;
@@ -176,15 +258,14 @@ function smtp_send($to, $subject, $body, $reply_to)
             'Subject: ' . mail_header($subject),
             'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . $domain . '>',
             'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
-            'Content-Transfer-Encoding: base64',
         ];
+        list($content_type, $body) = mime_body($m);
+        $headers[] = $content_type;
         if ($reply_to) {
             $headers[] = 'Reply-To: ' . implode(', ', $reply_to);
         }
-        $text = preg_replace("/\r?\n/", "\r\n", $body);
-        // base64 non contiene mai righe che iniziano con "." (niente dot-stuffing da gestire)
-        $cmd(implode("\r\n", $headers) . "\r\n\r\n" . rtrim(chunk_split(base64_encode($text), 76, "\r\n")) . "\r\n.", 250, 'DATA');
+        // nel corpo nessuna riga inizia con "." (parti in base64 e intestazioni MIME): niente dot-stuffing
+        $cmd(implode("\r\n", $headers) . "\r\n\r\n" . $body . "\r\n.", 250, 'DATA');
         try {
             $cmd('QUIT', 221);
         } catch (RuntimeException $e) {
@@ -212,14 +293,16 @@ function find_row($table, $id)
     return null;
 }
 
-/** Tutti i campi del modulo, per la mail all'admin. */
+/** Tutti i campi del modulo, per la mail all'admin: righe [etichetta, valore, link]. */
 function dettagli($table, $row)
 {
     $righe = [];
     foreach (tables()[$table]['form'] as $f) {
         $n = $f['name'];
+        $link = null;
         if ($f['type'] === 'map') {
-            $v = "https://www.openstreetmap.org/?mlat={$row['lat']}&mlon={$row['lng']}#map=16/{$row['lat']}/{$row['lng']}";
+            $v = 'Apri sulla mappa';
+            $link = "https://www.openstreetmap.org/?mlat={$row['lat']}&mlon={$row['lng']}#map=16/{$row['lat']}/{$row['lng']}";
         } elseif ($f['type'] === 'foto') {
             $v = count(foto_list(isset($row['foto']) ? $row['foto'] : '')) . ' foto';
         } elseif ($f['type'] === 'iniziativa') {
@@ -227,14 +310,14 @@ function dettagli($table, $row)
             $v = $ini ? "{$ini['titolo']} ({$ini['citta']}, " . fmt_data($ini['data']) . ')' : $row[$n];
         } elseif ($f['type'] === 'datetime-local') {
             $v = fmt_data($row[$n]);
+        } elseif ($f['type'] === 'url' && !empty($row[$n])) {
+            $v = $link = $row[$n];
         } else {
             $v = isset($row[$n]) ? $row[$n] : '';
         }
-        $v = $v !== '' ? $v : '—';
-        $label = rtrim($f['label'], '?');
-        $righe[] = (strpos($v, "\n") !== false || mb_strlen_safe($v) > 60) ? "$label\n$v\n" : "$label: $v";
+        $righe[] = [rtrim($f['label'], '?'), $v !== '' ? $v : '—', $link];
     }
-    return implode("\n", $righe);
+    return ['tipo' => 'dettagli', 'righe' => $righe];
 }
 
 function mb_strlen_safe($s)
@@ -248,55 +331,76 @@ function notify_new($table, $row)
     $admin_link = $site . '/' . ADMIN_PAGE;
     if ($table === 'iniziative') {
         send_mail(mail_admins(), "[Carovana] Nuova proposta di iniziativa: {$row['titolo']} ({$row['citta']})",
-            "È arrivata una nuova proposta di iniziativa da approvare.\n\n" . dettagli($table, $row)
-            . "\n\nPer approvarla: $admin_link", $row['email']);
+            'Nuova proposta di iniziativa', [
+                paragrafo('È arrivata una nuova proposta di iniziativa da approvare.'),
+                dettagli($table, $row),
+                pulsante('Apri la gestione', $admin_link),
+            ], $row['email']);
         send_mail($row['email'], 'Abbiamo ricevuto la tua proposta di iniziativa per la Carovana',
-            "Ciao,\n\n"
-            . "grazie per aver proposto l'iniziativa «{$row['titolo']}», in programma a {$row['citta']} il " . fmt_data($row['data']) . ', '
-            . "alla Carovana per i diritti dell'abitare.\n\n"
-            . 'Abbiamo ricevuto correttamente la tua proposta. La esamineremo e, una volta approvata, '
-            . "sarà pubblicata sulla mappa della Carovana: $site\n\n"
-            . "Ti scriveremo non appena l'iniziativa sarà online. "
-            . "Ti invieremo anche il link a cui accedere per condividere le immagini dell'iniziativa e il contributo per la proposta di legge dal basso.\n\n"
-            . 'Nel frattempo, se vuoi correggere o aggiungere qualche informazione alla proposta, puoi semplicemente rispondere a questa email.',
-            mail_admins());
+            'Abbiamo ricevuto la tua proposta', [
+                paragrafo('Ciao,'),
+                paragrafo("grazie per aver proposto l'iniziativa «{$row['titolo']}», in programma a {$row['citta']} "
+                    . 'il ' . fmt_data($row['data']) . ", alla Carovana per i diritti dell'abitare."),
+                paragrafo('Abbiamo ricevuto correttamente la tua proposta. La esamineremo e, una volta approvata, '
+                    . 'sarà pubblicata sulla mappa della Carovana.'),
+                pulsante('Vai alla mappa della Carovana', $site),
+                paragrafo("Ti scriveremo non appena l'iniziativa sarà online. Ti invieremo anche il link a cui accedere "
+                    . "per condividere le immagini dell'iniziativa e il contributo per la proposta di legge dal basso."),
+                paragrafo('Nel frattempo, se vuoi correggere o aggiungere qualche informazione alla proposta, '
+                    . 'puoi semplicemente rispondere a questa email.'),
+            ], mail_admins());
         return;
     }
     // un contributo non ha una data propria: si usa quella dell'iniziativa
     $ini = find_row('iniziative', $row['iniziativa_id']) ?: ['titolo' => '?', 'citta' => '?', 'data' => ''];
     send_mail(mail_admins(), "[Carovana] Nuovo contributo: {$ini['titolo']} ({$ini['citta']})",
-        "È arrivato un nuovo contributo da approvare.\n\n" . dettagli($table, $row)
-        . "\n\nPer approvarlo: $admin_link", $row['email']);
+        'Nuovo contributo', [
+            paragrafo('È arrivato un nuovo contributo da approvare.'),
+            dettagli($table, $row),
+            pulsante('Apri la gestione', $admin_link),
+        ], $row['email']);
     send_mail($row['email'], 'Abbiamo ricevuto il tuo contributo per la Carovana',
-        "Ciao,\n\n"
-        . "grazie per il contributo sull'iniziativa «{$ini['titolo']}», svoltasi a {$ini['citta']} il " . fmt_data($ini['data']) . ".\n\n"
-        . 'Abbiamo ricevuto correttamente il tuo contributo: appena sarà '
-        . "approvato, comparirà nella scheda dell'iniziativa sulla mappa della Carovana:\n"
-        . "$site/#{$row['iniziativa_id']}\n\n"
-        . "Ti scriveremo non appena il contributo sarà online.\n"
-        . 'Nel frattempo, se vuoi correggere o aggiungere qualcosa, puoi semplicemente rispondere a questa email.',
-        mail_admins());
+        'Abbiamo ricevuto il tuo contributo', [
+            paragrafo('Ciao,'),
+            paragrafo("grazie per il contributo sull'iniziativa «{$ini['titolo']}», svoltasi a {$ini['citta']} "
+                . 'il ' . fmt_data($ini['data']) . '.'),
+            paragrafo('Abbiamo ricevuto correttamente il tuo contributo: appena sarà approvato, comparirà nella '
+                . "scheda dell'iniziativa sulla mappa della Carovana."),
+            pulsante("Vedi l'iniziativa sulla mappa", "$site/#{$row['iniziativa_id']}"),
+            paragrafo('Ti scriveremo non appena il contributo sarà online.'),
+            paragrafo('Nel frattempo, se vuoi correggere o aggiungere qualcosa, puoi semplicemente rispondere a questa email.'),
+        ], mail_admins());
 }
 
 function notify_approved($table, $row)
 {
     $site = site_url();
     if ($table === 'iniziative') {
+        $blocchi = [
+            paragrafo('Ciao,'),
+            paragrafo("l'iniziativa «{$row['titolo']}», in programma a {$row['citta']} il " . fmt_data($row['data']) . ', '
+                . 'è stata approvata ed è ora visibile a tutti sulla mappa della Carovana.'),
+            pulsante("Vedi l'iniziativa sulla mappa", "$site/#{$row['id']}"),
+            paragrafo("Dopo l'iniziativa raccontaci com'è andata e cosa è emerso sulla proposta di legge: proposte, "
+                . 'osservazioni, suggerimenti e qualche foto. Puoi farlo da questa pagina, usando questa stessa email:'),
+            pulsante('Invia il tuo contributo', "$site/contribuisci.php?iniziativa={$row['id']}"),
+        ];
+        if (MATERIALI_URL !== '') {
+            $blocchi[] = riquadro('Materiali utili',
+                'Nella cartella condivisa trovi i materiali utili per organizzare e promuovere la tappa.',
+                'Apri la cartella dei materiali', MATERIALI_URL);
+        }
         return send_mail($row['email'], "La tua iniziativa è sulla mappa della Carovana: {$row['titolo']}",
-            "Ciao,\n\n"
-            . "l'iniziativa «{$row['titolo']}», in programma a {$row['citta']} il " . fmt_data($row['data']) . ', è stata approvata '
-            . "ed è ora visibile a tutti sulla mappa della Carovana:\n"
-            . "$site/#{$row['id']}\n\n"
-            . "Dopo l'iniziativa raccontaci com'è andata e cosa è emerso sulla proposta di legge: "
-            . 'proposte, osservazioni, suggerimenti e qualche foto. Puoi farlo da questa pagina, '
-            . "usando questa stessa email:\n"
-            . "$site/contribuisci.php?iniziativa={$row['id']}", mail_admins());
+            'La tua iniziativa è sulla mappa!', $blocchi, mail_admins());
     }
     $ini = find_row('iniziative', $row['iniziativa_id']) ?: ['titolo' => '?', 'citta' => '?', 'data' => ''];
     return send_mail($row['email'], "Il tuo contributo è stato pubblicato: {$ini['titolo']}",
-        "Ciao,\n\n"
-        . "il tuo contributo sull'iniziativa «{$ini['titolo']}», svoltasi a {$ini['citta']} il " . fmt_data($ini['data']) . ', è stato approvato '
-        . "ed è ora visibile a tutti nella scheda dell'iniziativa sulla mappa della Carovana:\n"
-        . "$site/#{$row['iniziativa_id']}\n\n"
-        . "Grazie per aver contribuito alla proposta di legge dal basso sull'abitare!", mail_admins());
+        'Il tuo contributo è stato pubblicato', [
+            paragrafo('Ciao,'),
+            paragrafo("il tuo contributo sull'iniziativa «{$ini['titolo']}», svoltasi a {$ini['citta']} il "
+                . fmt_data($ini['data']) . ", è stato approvato ed è ora visibile a tutti nella scheda "
+                . "dell'iniziativa sulla mappa della Carovana."),
+            pulsante('Vedi il contributo sulla mappa', "$site/#{$row['iniziativa_id']}"),
+            paragrafo("Grazie per aver contribuito alla proposta di legge dal basso sull'abitare!"),
+        ], mail_admins());
 }

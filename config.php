@@ -34,5 +34,8 @@ define('SMTP_USER', getenv('SMTP_USER') ?: '');
 define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: '');
 // Mittente, es. 'Carovana SFA <carovana@example.org>'
 define('MAIL_FROM', getenv('MAIL_FROM') ?: '');
+// Cartella condivisa con i materiali per chi organizza una tappa: link nella mail di approvazione
+// (vuoto = la sezione "Materiali utili" non compare)
+define('MATERIALI_URL', getenv('MATERIALI_URL') ?: '');
 // Chi riceve gli avvisi di nuove proposte e contributi (più indirizzi separati da virgola)
 define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: '');
