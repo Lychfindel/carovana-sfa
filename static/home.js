@@ -98,9 +98,11 @@
   const pinIcon = (i) => L.divIcon({ className: 'pin' + (isPast(i) ? ' is-past' : ''), html: '<i></i>', iconSize: [18, 18] });
   function setActive(id, on) {
     const m = markers[id];
-    const e = m && m.getElement();
+    if (!m) return;
+    const shown = cluster.getVisibleParent(m) || m; // se il pallino è in un gruppo, si evidenzia il gruppo
+    const e = shown.getElement();
     if (e) e.classList.toggle('is-active', on);
-    if (m) m.setZIndexOffset(on ? 1000 : (m.options.past ? 0 : 500));
+    shown.setZIndexOffset(on ? 1000 : (shown === m && !m.options.past ? 500 : 0));
   }
 
   const $ = (id) => document.getElementById(id);
@@ -151,7 +153,11 @@
       b.append(cal, txt);
       b.addEventListener('click', () => select(i.id, true));
       b.addEventListener('mouseenter', () => setActive(i.id, true));
-      b.addEventListener('mouseleave', () => selected !== i.id && setActive(i.id, false));
+      b.addEventListener('mouseleave', () => {
+        if (selected === i.id) return;
+        setActive(i.id, false);
+        if (selected) setActive(selected, true); // il gruppo può contenere anche l'iniziativa selezionata
+      });
       li.append(b); list.append(li);
     });
     const empty = $('empty');
