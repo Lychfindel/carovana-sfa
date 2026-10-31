@@ -103,7 +103,7 @@ a:hover { text-decoration-color: var(--ink); }
 .map-mask { fill: var(--c2-soft); stroke: var(--ink); }
 .map-region { stroke: var(--ink); }
 .route-next { stroke: var(--ink); }
-.route-past { stroke: var(--grey); }
+.route-past { stroke: #777; }
 
 /* pallini delle iniziative: colore principale con contorno nero, come i disegni */
 .pin i { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--c1); border: 2.5px solid var(--ink); transition: transform .15s; }

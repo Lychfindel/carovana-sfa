@@ -75,8 +75,8 @@
       const done = b.past;
       L.polyline(arc([a.lat, a.lng], [b.lat, b.lng]), {
         pane: 'route', interactive: false, smoothFactor: 1,
-        className: done ? 'route-past' : 'route-next', weight: done ? 2 : 2.5,
-        opacity: done ? 0.6 : 0.9, dashArray: done ? '2 6' : '8 7', lineCap: 'round'
+        className: done ? 'route-past' : 'route-next', weight: done ? 2.25 : 2.5,
+        opacity: 0.9, dashArray: '8 7', lineCap: 'round'
       }).addTo(map);
     }
   }

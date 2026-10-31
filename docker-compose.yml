@@ -1,21 +1,17 @@
+# Per vedere il sito in locale:  docker compose up   ->  http://localhost:8088 (porta: PORTA=… nel comando)
+# Immagine ufficiale PHP con il server integrato: le modifiche ai file si vedono ricaricando la pagina.
+# shortcut: l'immagine non ha l'estensione GD, quindi in locale il caricamento delle foto dà errore;
+# per provarlo serve un'immagine con GD (o l'hosting vero).
 services:
   carovana:
-    build:
-      context: .
-      args:
-        UID: ${UID:-1000}
-        GID: ${GID:-1000}
-    image: carovana-php:latest
-    container_name: carovana
-    restart: unless-stopped
-    env_file: .env
-    volumes:
-      - ./data:/var/www/html/data
+    image: php:8.3-cli
+    user: "${UID:-1000}:${GID:-1000}"   # così il sito può scrivere in data/
+    working_dir: /app
+    command: php -d upload_max_filesize=10M -d post_max_size=64M -S 0.0.0.0:8000
     ports:
-      # solo su localhost: il sito va esposto tramite il reverse proxy del server
-      - "127.0.0.1:${CAROVANA_PORT:-8000}:80"
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1/api.php"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+      - "127.0.0.1:${PORTA:-8088}:8000"
+    volumes:
+      - ./:/app
+    env_file:
+      - path: .env      # facoltativo: password, SMTP, slogan…
+        required: false

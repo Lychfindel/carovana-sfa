@@ -86,35 +86,6 @@ server SMTP non risponde i moduli funzionano lo stesso e l'errore finisce nel lo
   reverse proxy il sito non può ricavarlo da solo.
 - Se rinomini `gestione.php`, indica il nuovo nome in `ADMIN_PAGE` (per il link nella mail all'admin).
 
-## Con Docker (consigliato sul server)
-
-```bash
-cp .env.example .env        # poi cambia almeno ADMIN_PASSWORD (e imposta SMTP e SITE_URL per le email)
-docker compose up -d --build
-```
-
-- L'immagine (`php:8.3-apache`) include GD con JPEG/WebP, EXIF e i limiti di caricamento
-  per le foto; i messaggi di errore di PHP vanno nei log, non ai visitatori.
-- Il sito ascolta su `127.0.0.1:8000` (porta modificabile con `CAROVANA_PORT` in `.env`):
-  va esposto tramite il reverse proxy del server con HTTPS.
-- CSV e foto restano sul server nella cartella `./data` (montata nel container): per il
-  backup basta copiare questa cartella.
-- Apache gira con un utente con UID/GID 1000. Se sul server la cartella del progetto
-  appartiene a un altro utente, avvia con `UID=$(id -u) GID=$(id -g) docker compose up -d --build`.
-- Aggiornare dopo un `git pull`: `docker compose up -d --build`. Log: `docker compose logs -f`.
-
-Nel reverse proxy nginx serve alzare il limite delle richieste per le foto:
-
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:8000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-client_max_body_size 64m;  # default nginx: 1 MB
-```
-
 ## Su un hosting condiviso
 
 1. Modifica `config.php`: **cambia la password** (`ADMIN_PASSWORD`, oppure meglio
@@ -165,10 +136,12 @@ solo per il sito. Per correzioni manuali usa la pagina di gestione.
 ## Provarlo in locale
 
 ```bash
-docker compose up -d --build    # http://127.0.0.1:8000
-# oppure con PHP installato (serve l'estensione GD per le foto):
-php -S 127.0.0.1:8000
+docker compose up    # http://localhost:8088  (altra porta: PORTA=9000 docker compose up)
 ```
+
+Usa l'immagine ufficiale `php:8.3-cli` con il server integrato e la cartella del progetto
+montata: le modifiche si vedono ricaricando la pagina. Quell'immagine non ha l'estensione GD,
+quindi in locale il caricamento delle foto dà errore (sull'hosting funziona).
 
 ## Modificare le domande dei form
 
@@ -192,5 +165,5 @@ inc/email.php       grafica HTML delle email
 inc/header.php, inc/footer.php
 static/             CSS, JavaScript (mappa, selettore posizione, foto, editor admin), GeoJSON, logo, PDF
 data/               CSV e foto (non accessibile dal web)
-Dockerfile, docker-compose.yml, .env.example
+docker-compose.yml  solo per provarlo in locale; .env.example
 ```
